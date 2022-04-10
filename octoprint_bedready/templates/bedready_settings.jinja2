@@ -1,0 +1,20 @@
+<h4>Bed Ready <small>{{ _('Version') }} {{ plugin_bedready_plugin_version }}</small></h4>
+<div class="row-fluid">
+    <div class="well"><p>For the plugin to work properly add <span class="label label-info">@BEDREADY</span> at the beginning of your slicer's start gcode. For best results add gcode to your slicer's end gcode to position the head out of the way for the next comparison.</p><p><span class="label label-important">NOTE:</span> Lighting, camera view angle changes, and filament color that is similar to the bed can impact accuracy; adjust the Match Percentage setting below to compensate.</p></div>
+</div>
+<form class="form-vertical" id="settings_plugin_bedready_form">
+    <div class="control-group">
+        <label class="control-label">{{ _('Reference Image') }}</label>
+        <div class="controls">
+            <img src="" alt="bed snapshot" data-bind="visible: settingsViewModel.settings.plugins.bedready.reference_image().length > 0, attr: {src: settingsViewModel.settings.plugins.bedready.reference_image}, style: {'padding-bottom': (settingsViewModel.settings.plugins.bedready.reference_image_timestamp().length > 0) ? '' : '10px'}">
+            <p data-bind="visible: settingsViewModel.settings.plugins.bedready.reference_image_timestamp().length > 0"><small>Last saved: <span data-bind="text: settingsViewModel.settings.plugins.bedready.reference_image_timestamp"></span></small></p>
+            <button class="btn btn-primary" data-bind="click: take_snapshot, enable: !taking_snapshot(), css: {disabled: taking_snapshot()}"><i class="fas" data-bind="css: {'fa-spinner fa-spin': taking_snapshot(), 'fa-camera': !taking_snapshot()}"></i> {{ _('Take Snapshot') }}</button>
+        </div>
+    </div>
+	<div class="control-group">
+        <label class="control-label">{{ _('Match Percentage') }} <span data-bind="text: (settingsViewModel.settings.plugins.bedready.match_percentage() * 100).toFixed(1)"></span>%</label>
+		<div class="controls">
+            <input type="number" style="width: 650px; display: none;" data-bind="slider: {min: 0, max: 1, step: .001, value: settingsViewModel.settings.plugins.bedready.match_percentage, tooltip: 'hide'}">
+        </div>
+	</div>
+</form>
