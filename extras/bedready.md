@@ -8,94 +8,82 @@ authors:
 - jneilliii
 license: AGPLv3
 
-# TODO
-date: today's date in format YYYY-MM-DD, e.g. 2015-04-21
+date: 2015-04-16
 
 homepage: https://github.com/jneilliii/OctoPrint-BedReady
 source: https://github.com/jneilliii/OctoPrint-BedReady
 archive: https://github.com/jneilliii/OctoPrint-BedReady/archive/master.zip
 
-# TODO
-# Set this to true if your plugin uses the dependency_links setup parameter to include
-# library versions not yet published on PyPi. SHOULD ONLY BE USED IF THERE IS NO OTHER OPTION!
-#follow_dependency_links: false
-
-# TODO
 tags:
-- a list
-- of tags
-- that apply
-- to your plugin
-- (take a look at the existing plugins for what makes sense here)
+- bed
+- clear
+- opencv
+- collision avoidance
+- object detection
+- clear
+- safety
+- automation
 
-# TODO
-# When registering a plugin on plugins.octoprint.org, all screenshots should be uploaded not linked from external sites.
-screenshots:
-- url: url of a screenshot, /assets/img/...
-  alt: alt-text of a screenshot
-  caption: caption of a screenshot
-- url: url of another screenshot, /assets/img/...
-  alt: alt-text of another screenshot
-  caption: caption of another screenshot
-- ...
-
-# TODO
-featuredimage: url of a featured image for your plugin, /assets/img/...
-
-# TODO
-# You only need the following if your plugin requires specific OctoPrint versions or
-# specific operating systems to function - you can safely remove the whole
-# "compatibility" block if this is not the case.
+featuredimage: /assets/img/plugins/bedready/screenshot_bed_not_ready.png
 
 compatibility:
-
-  # List of compatible versions
-  #
-  # A single version number will be interpretated as a minimum version requirement,
-  # e.g. "1.3.1" will show the plugin as compatible to OctoPrint versions 1.3.1 and up.
-  # More sophisticated version requirements can be modelled too by using PEP440
-  # compatible version specifiers.
-  #
-  # You can also remove the whole "octoprint" block. Removing it will default to all
-  # OctoPrint versions being supported.
-
   octoprint:
   - 1.4.0
-
-  # List of compatible operating systems
-  #
-  # Valid values:
-  #
-  # - windows
-  # - linux
-  # - macos
-  # - freebsd
-  #
-  # There are also two OS groups defined that get expanded on usage:
-  #
-  # - posix: linux, macos and freebsd
-  # - nix: linux and freebsd
-  #
-  # You can also remove the whole "os" block. Removing it will default to all
-  # operating systems being supported.
-
   os:
   - linux
   - windows
   - macos
   - freebsd
-
-  # Compatible Python version
-  #
-  # It is recommended to only support Python 3 for new plugins, in which case this should be ">=3,<4"
-  # 
-  # Plugins that wish to support both Python 2 and 3 should set it to ">=2.7,<4".
-  #
-  # Plugins that only support Python 2 will not be accepted into the plugin repository.
-
-  python: ">=3,<4"
+  python: ">=3.6,<4"
 
 ---
 
-**TODO**: Longer description of your plugin, configuration examples etc. This part will be visible on the page at
-http://plugins.octoprint.org/plugin/bedready/
+# Bed Ready
+
+Plugin that uses the camera and opencv to determine if the bed matches a reference image indicating that the bed is clear and ready to start a print.
+
+![Screenshot Bed Not Ready](/assets/img/plugins/bedready/screenshot_bed_not_ready.png)
+
+For the plugin to work properly add `@BEDREADY` at the beginning of your slicer's start gcode. For best results add gcode to your slicer's end gcode to position the head out of the way for the next comparison.
+
+**NOTE:** Lighting, camera view angle changes, and filament color that is similar to the bed can impact accuracy; adjust the Match Percentage setting below to compensate.
+
+## Configuration
+
+![Settings Screenshot](/assets/img/plugins/bedready/screenshot_settings.png)
+
+Use the Test Snapshot button to compare the currently stored Reference Image with the bed.
+
+![Test Results](/assets/img/plugins/bedready/screenshot_test_results.png)
+
+## Get Help
+
+If you experience issues with this plugin or need assistance please use the issue tracker by clicking issues above.
+
+### Additional Plugins
+
+Check out my other plugins [here](https://plugins.octoprint.org/by_author/#jneilliii)
+
+### Sponsors
+- Andreas Lindermayr
+- [@Mearman](https://github.com/Mearman)
+- [@TheTuxKeeper](https://github.com/thetuxkeeper)
+- [@tideline3d](https://github.com/tideline3d/)
+- [SimplyPrint](https://simplyprint.dk/)
+- [Andrew Beeman](https://github.com/Kiendeleo)
+- [Calanish](https://github.com/calanish)
+- [Will O](https://github.com/4wrxb)
+- [Lachlan Bell](https://lachy.io/)
+- [Johnny Bergdal](https://github.com/bergdahl)
+- [Leigh Johnson](https://github.com/leigh-johnson)
+- [Stephen Berry](https://github.com/berrystephenw)
+- [Guyot François](https://github.com/iFrostizz)
+- César Romero
+- [Steve Dougherty](https://github.com/Thynix)
+- [Kyle Menigoz](https://menigoz.me)
+## Support My Efforts
+I, jneilliii, programmed this plugin for fun and do my best effort to support those that have issues with it, please return the favor and leave me a tip or become a Patron if you find this plugin helpful and want me to continue future development.
+
+[![Patreon](/assets/img/plugins/bedready/patreon-with-text-new.png)](https://www.patreon.com/jneilliii) [![paypal](/assets/img/plugins/bedready/paypal-with-text.png)](https://paypal.me/jneilliii) [![GitHub](/assets/img/plugins/bedready/github.png)](https://github.com/sponsors/jneilliii)
+
+<small>No paypal.me? Send funds via PayPal to jneilliii&#64;gmail&#46;com</small>
