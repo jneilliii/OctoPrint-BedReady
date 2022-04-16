@@ -29,6 +29,8 @@ $(function () {
             }
             if (data.hasOwnProperty('similarity')) {
                 self.popup_options.text = '<div class="row-fluid"><p>Match percentage calculated as <span class="label label-warning">' + (parseFloat(data.similarity) * 100).toFixed(2) + '%</span>.</p><p>Print job has been paused, check bed and then resume.</p><p><img src="/plugin/bedready/images/compare.jpg?' + Math.round(new Date().getTime() / 1000) + '"></p></div>';
+                self.popup_options.type = 'error';
+                self.popup_options.title = 'Bed Not Ready';
                 if (self.popup === undefined) {
                     self.popup = PNotify.singleButtonNotify(self.popup_options);
                 } else {
@@ -45,7 +47,7 @@ $(function () {
             OctoPrint.simpleApiCommand('bedready', 'take_snapshot')
                 .done(function (response) {
                     if (response.hasOwnProperty('reference_image')) {
-                        self.settingsViewModel.settings.plugins.bedready.reference_image(response.reference_image);
+                        self.settingsViewModel.settings.plugins.bedready.reference_image(response.url);
                         self.settingsViewModel.settings.plugins.bedready.reference_image_timestamp(response.reference_image_timestamp);
                     } else {
                         new PNotify({
@@ -53,6 +55,32 @@ $(function () {
                             text: '<div class="row-fluid"><p>There was an error saving the reference snapshot.</p></div><p><pre style="padding-top: 5px;">' + response.error + '</pre></p>',
                             hide: true
                         });
+                    }
+                    self.taking_snapshot(false);
+                });
+        };
+
+        self.test_snapshot = function () {
+            self.taking_snapshot(true);
+            OctoPrint.simpleApiCommand('bedready', 'take_snapshot', {test: true})
+                .done(function (response) {
+                    if (response.hasOwnProperty('test_image')) {
+                        self.popup_options.text = '<div class="row-fluid"><p>Match percentage calculated as <span class="label label-info">' + (parseFloat(response.similarity) * 100).toFixed(2) + '%</span>.</p><p><img src="' + response.test_image + '"></p></div>';
+                        if (parseFloat(response.similarity) < parseFloat(self.settingsViewModel.settings.plugins.bedready.match_percentage())) {
+                            self.popup_options.type = 'error';
+                        } else {
+                            self.popup_options.type = 'success';
+                        }
+
+                        self.popup_options.title = 'Bed Ready Test';
+                        if (self.popup === undefined) {
+                            self.popup = PNotify.singleButtonNotify(self.popup_options);
+                        } else {
+                            self.popup.update(self.popup_options);
+                            if (self.popup.state === 'closed') {
+                                self.popup.open();
+                            }
+                        }
                     }
                     self.taking_snapshot(false);
                 });

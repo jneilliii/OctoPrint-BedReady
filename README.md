@@ -19,6 +19,10 @@ or manually using this URL:
 
 ![Settings Screenshot](screenshot_settings.png)
 
+Use the Test Snapshot button to compare the currently stored Reference Image with the bed.
+
+![Test Results](screenshot_test_results.png)
+
 ## Get Help
 
 If you experience issues with this plugin or need assistance please use the issue tracker by clicking issues above.

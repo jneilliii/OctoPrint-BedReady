@@ -32,14 +32,22 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
         import flask
 
         if command == "take_snapshot":
-            relative_url = self.take_snapshot("reference.jpg")
-            if "reference_image" in relative_url:
-                reference_image_timestamp = "{:%m/%d/%Y %H:%M:%S}".format(datetime.datetime.now())
-                self._settings.set(["reference_image"], relative_url["reference_image"])
-                self._settings.set(["reference_image_timestamp"], reference_image_timestamp)
-                relative_url["reference_image_timestamp"] = reference_image_timestamp
-                self._settings.save()
-            return flask.jsonify(relative_url)
+            if data.get("test", False):
+                relative_url = self.take_snapshot("test.jpg", "test_image")
+                if "test_image" in relative_url:
+                    similarity = self.compare_images(os.path.join(self.get_plugin_data_folder(), "reference.jpg"), relative_url["test_image"])
+                    return flask.jsonify({"test_image": relative_url["url"], "similarity": round(similarity, 4)})
+                else:
+                    return flask.jsonify({"error": relative_url})
+            else:
+                relative_url = self.take_snapshot("reference.jpg")
+                if "reference_image" in relative_url:
+                    reference_image_timestamp = "{:%m/%d/%Y %H:%M:%S}".format(datetime.datetime.now())
+                    self._settings.set(["reference_image"], relative_url["url"])
+                    self._settings.set(["reference_image_timestamp"], reference_image_timestamp)
+                    relative_url["reference_image_timestamp"] = reference_image_timestamp
+                    self._settings.save()
+                return flask.jsonify(relative_url)
 
     def take_snapshot(self, filename=None, filetype="reference_image"):
         if self._settings.global_get(["webcam", "snapshot_url"]) == "" or not filename:
@@ -51,10 +59,7 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
             with open(download_file_name, "wb") as f:
                 f.write(response.content)
             if os.path.exists(download_file_name):
-                if filetype == "reference_image":
-                    return {"reference_image": "/plugin/bedready/images/reference.jpg?{:%Y%m%d%H%M%S}".format(datetime.datetime.now())}
-                else:
-                    return {filetype: download_file_name}
+                return {filetype: download_file_name, "url": "/plugin/bedready/images/{}?{:%Y%m%d%H%M%S}".format(filename, datetime.datetime.now())}
             else:
                 return {"error": "unable to save file."}
         else:
@@ -94,6 +99,14 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
                                                              lambda path: not is_hidden_path(path), status_code=404)))
         ]
 
+    def compare_images(self, reference_image, comparison_image):
+        import cv2
+        reference_image = cv2.imread(reference_image)
+        comparison_image = cv2.imread(comparison_image)
+        height, width, channels = reference_image.shape
+        pixel_difference = cv2.norm(reference_image, comparison_image, cv2.NORM_L2)
+        return 1 - pixel_difference / (height * width)
+
     ##~~ @ command hook
 
     def process_at_command(self, comm, phase, command, parameters, tags=None, *args, **kwargs):
@@ -107,12 +120,7 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
                 self._logger.error(comparison_image["error"])
                 return
             self._logger.info("file saved: {}".format(comparison_image))
-            import cv2
-            reference_image = cv2.imread(os.path.join(self.get_plugin_data_folder(), "reference.jpg"))
-            comparison_image = cv2.imread(os.path.join(self.get_plugin_data_folder(), "compare.jpg"))
-            height, width, channels = reference_image.shape
-            pixel_difference = cv2.norm(reference_image, comparison_image, cv2.NORM_L2)
-            similarity = 1 - pixel_difference / (height * width)
+            similarity = self.compare_images(os.path.join(self.get_plugin_data_folder(), "reference.jpg"), comparison_image["comparison_image"])
             if similarity < self._settings.get_float(["match_percentage"]):
                 self._logger.info("match '{}' not close enough".format(similarity))
                 self._printer.pause_print(tags={self._identifier})
