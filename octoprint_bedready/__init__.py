@@ -54,7 +54,7 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
             return {"error": "missing snapshot url in webcam & timelapse settings."}
 
         download_file_name = os.path.join(self.get_plugin_data_folder(), filename)
-        response = requests.get(self._settings.global_get(["webcam", "snapshot"]))
+        response = requests.get(self._settings.global_get(["webcam", "snapshot"]), timeout=20)
         if response.status_code == 200:
             with open(download_file_name, "wb") as f:
                 f.write(response.content)
@@ -114,19 +114,18 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
             return
 
         with self._printer.job_on_hold():
-            self._logger.info("this is where we compare")
             comparison_image = self.take_snapshot("compare.jpg", "comparison_image")
             if "error" in comparison_image:
                 self._logger.error(comparison_image["error"])
                 return
-            self._logger.info("file saved: {}".format(comparison_image))
+            self._logger.debug("file saved: {}".format(comparison_image))
             similarity = self.compare_images(os.path.join(self.get_plugin_data_folder(), "reference.jpg"), comparison_image["comparison_image"])
             if similarity < self._settings.get_float(["match_percentage"]):
-                self._logger.info("match '{}' not close enough".format(similarity))
+                self._logger.debug("match '{}' not close enough".format(similarity))
                 self._printer.pause_print(tags={self._identifier})
                 self._plugin_manager.send_plugin_message(self._identifier, {"bed_clear": False, "similarity": round(similarity, 4)})
             else:
-                self._logger.info("match '{}' is all good, continuing".format(similarity))
+                self._logger.debug("match '{}' is all good, continuing".format(similarity))
                 self._plugin_manager.send_plugin_message(self._identifier, {"bed_clear": True})
 
     ##~~ Softwareupdate hook
