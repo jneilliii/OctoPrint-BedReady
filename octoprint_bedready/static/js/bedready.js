@@ -23,6 +23,10 @@ $(function () {
         self.settingsViewModel = parameters[0];
         self.controlViewModel = parameters[1];
 
+        self.snapshot_valid = ko.pureComputed(function(){
+            return self.settingsViewModel.webcam_snapshotUrl().length > 0 && self.settingsViewModel.webcam_snapshotUrl().startsWith('http');
+        });
+
         self.onDataUpdaterPluginMessage = function (plugin, data) {
             if (plugin !== 'bedready') {
                 return;
@@ -39,6 +43,15 @@ $(function () {
             } else if (self.popup !== undefined && data.bed_clear) {
                 self.popup.remove();
                 self.popup = undefined;
+            } else if (data.hasOwnProperty('error')) {
+                self.popup_options.text = 'There was an error: ' + data.error.error;
+                self.popup_options.type = 'error';
+                self.popup_options.title = 'Bed Ready Error';
+                if (self.popup === undefined) {
+                    self.popup = PNotify.singleButtonNotify(self.popup_options);
+                } else {
+                    self.popup.update(self.popup_options);
+                }
             }
         };
 

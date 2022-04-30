@@ -1,6 +1,7 @@
 # coding=utf-8
 from __future__ import absolute_import
 
+import flask
 import octoprint.plugin
 import requests
 import os
@@ -50,11 +51,12 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
                 return flask.jsonify(relative_url)
 
     def take_snapshot(self, filename=None, filetype="reference_image"):
-        if self._settings.global_get(["webcam", "snapshot_url"]) == "" or not filename:
-            return {"error": "missing snapshot url in webcam & timelapse settings."}
+        snapshot_url = self._settings.global_get(["webcam", "snapshot"])
+        if snapshot_url == "" or not filename or not snapshot_url.startswith("http"):
+            return {"error": "missing or incorrect snapshot url in webcam & timelapse settings."}
 
         download_file_name = os.path.join(self.get_plugin_data_folder(), filename)
-        response = requests.get(self._settings.global_get(["webcam", "snapshot"]), timeout=20)
+        response = requests.get(snapshot_url, timeout=20)
         if response.status_code == 200:
             with open(download_file_name, "wb") as f:
                 f.write(response.content)
