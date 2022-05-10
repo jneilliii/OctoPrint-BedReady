@@ -61,7 +61,7 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
             with open(download_file_name, "wb") as f:
                 f.write(response.content)
             if os.path.exists(download_file_name):
-                return {filetype: download_file_name, "url": "/plugin/bedready/images/{}?{:%Y%m%d%H%M%S}".format(filename, datetime.datetime.now())}
+                return {filetype: download_file_name, "url": "plugin/bedready/images/{}?{:%Y%m%d%H%M%S}".format(filename, datetime.datetime.now())}
             else:
                 return {"error": "unable to save file."}
         else:
