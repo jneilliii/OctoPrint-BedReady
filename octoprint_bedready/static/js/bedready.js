@@ -31,7 +31,8 @@ $(function () {
             if (plugin !== 'bedready') {
                 return;
             }
-            if (data.hasOwnProperty('similarity')) {
+
+            if (data.hasOwnProperty('similarity') && !data.bed_clear) {
                 self.popup_options.text = '<div class="row-fluid"><p>Match percentage calculated as <span class="label label-warning">' + (parseFloat(data.similarity) * 100).toFixed(2) + '%</span>.</p><p>Print job has been paused, check bed and then resume.</p><p><img src="/plugin/bedready/images/compare.jpg?' + Math.round(new Date().getTime() / 1000) + '"></p></div>';
                 self.popup_options.type = 'error';
                 self.popup_options.title = 'Bed Not Ready';
@@ -39,6 +40,9 @@ $(function () {
                     self.popup = PNotify.singleButtonNotify(self.popup_options);
                 } else {
                     self.popup.update(self.popup_options);
+                    if (self.popup.state === 'closed'){
+                        self.popup.open();
+                    }
                 }
             } else if (self.popup !== undefined && data.bed_clear) {
                 self.popup.remove();
@@ -51,6 +55,9 @@ $(function () {
                     self.popup = PNotify.singleButtonNotify(self.popup_options);
                 } else {
                     self.popup.update(self.popup_options);
+                    if (self.popup.state === 'closed'){
+                        self.popup.open();
+                    }
                 }
             }
         };

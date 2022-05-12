@@ -18,4 +18,13 @@
             <input type="number" style="width: 650px; display: none;" data-bind="slider: {min: 0, max: 1, step: .001, value: settingsViewModel.settings.plugins.bedready.match_percentage, tooltip: 'hide'}">
         </div>
 	</div>
+	<div class="control-group">
+        <label class="control-label">{{ _('Action') }}</label>
+		<div class="controls">
+            <select data-bind="value: settingsViewModel.settings.plugins.bedready.cancel_print">
+                <option value="False">Pause</option>
+                <option value="True">Cancel</option>
+            </select>
+        </div>
+	</div>
 </form>

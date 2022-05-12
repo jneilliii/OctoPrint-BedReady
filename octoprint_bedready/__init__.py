@@ -16,13 +16,13 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
                      octoprint.plugin.EventHandlerPlugin
                      ):
 
-    ##~~ EventHandlerPlugin mixin
+    # ~~ EventHandlerPlugin mixin
 
     def on_event(self, event, payload):
-        if event in [Events.PRINT_RESUMED, Events.PRINT_CANCELLED]:
+        if event == Events.PRINT_RESUMED or event == Events.PRINT_CANCELLED and not self._settings.get_boolean(["cancel_print"]):
             self._plugin_manager.send_plugin_message(self._identifier, {"bed_clear": True})
 
-    ##~~ SimpleApiPlugin mixin
+    # ~~ SimpleApiPlugin mixin
 
     def get_api_commands(self):
         return dict(
@@ -67,16 +67,17 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
         else:
             return {"error": "unable to download snapshot."}
 
-    ##~~ SettingsPlugin mixin
+    # ~~ SettingsPlugin mixin
 
     def get_settings_defaults(self):
         return {
             "reference_image": "",
             "reference_image_timestamp": "",
-            "match_percentage": 0.98
+            "match_percentage": 0.98,
+            "cancel_print": False
         }
 
-    ##~~ AssetPlugin mixin
+    # ~~ AssetPlugin mixin
 
     def get_assets(self):
         return {
@@ -84,12 +85,12 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
             "js": ["js/bedready.js"]
         }
 
-    ##~~ TemplatePlugin mixin
+    # ~~ TemplatePlugin mixin
 
     def get_template_vars(self):
         return {"plugin_version": self._plugin_version}
 
-    ##~~ Route hook
+    # ~~ Route hook
 
     def route_hook(self, server_routes, *args, **kwargs):
         from octoprint.server.util.tornado import LargeResponseHandler, path_validation_factory
@@ -109,28 +110,35 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
         pixel_difference = cv2.norm(reference_image, comparison_image, cv2.NORM_L2)
         return 1 - pixel_difference / (height * width)
 
-    ##~~ @ command hook
+    # ~~ @ command hook
 
     def process_at_command(self, comm, phase, command, parameters, tags=None, *args, **kwargs):
         if command != "BEDREADY" or self._settings.get(["reference_image"]) == "":
             return
 
         with self._printer.job_on_hold():
-            comparison_image = self.take_snapshot("compare.jpg", "comparison_image")
-            if "error" in comparison_image:
-                self._logger.error(comparison_image["error"])
-                return
-            self._logger.debug("file saved: {}".format(comparison_image))
-            similarity = self.compare_images(os.path.join(self.get_plugin_data_folder(), "reference.jpg"), comparison_image["comparison_image"])
-            if similarity < self._settings.get_float(["match_percentage"]):
-                self._logger.debug("match '{}' not close enough".format(similarity))
-                self._printer.pause_print(tags={self._identifier})
-                self._plugin_manager.send_plugin_message(self._identifier, {"bed_clear": False, "similarity": round(similarity, 4)})
-            else:
-                self._logger.debug("match '{}' is all good, continuing".format(similarity))
-                self._plugin_manager.send_plugin_message(self._identifier, {"bed_clear": True})
+            try:
+                message = self.check_bed()
+                self._logger.debug("match: {}".format(message))
+                if not message.get("bed_clear"):
+                    if self._settings.get_boolean(["cancel_print"]):
+                        self._printer.cancel_print(tags={self._identifier})
+                    else:
+                        self._printer.pause_print(tags={self._identifier})
+                self._plugin_manager.send_plugin_message(self._identifier, message)
+            except Exception as e:
+                self._logger.info(e)
 
-    ##~~ Softwareupdate hook
+    def check_bed(self):
+        comparison_image = self.take_snapshot("compare.jpg", "comparison_image")
+        if "error" in comparison_image:
+            self._logger.error(comparison_image["error"])
+            return
+        self._logger.debug("file saved: {}".format(comparison_image))
+        similarity = self.compare_images(os.path.join(self.get_plugin_data_folder(), "reference.jpg"), comparison_image["comparison_image"])
+        return {"bed_clear": similarity > self._settings.get_float(["match_percentage"]), "similarity": round(similarity, 4)}
+
+    # ~~ Softwareupdate hook
 
     def get_update_information(self):
         return {
@@ -164,3 +172,6 @@ def __plugin_load__():
         "octoprint.server.http.routes": __plugin_implementation__.route_hook,
         "octoprint.comm.protocol.atcommand.queuing": __plugin_implementation__.process_at_command
     }
+
+    global __plugin_helpers__
+    __plugin_helpers__ = {'check_bed': __plugin_implementation__.check_bed}
