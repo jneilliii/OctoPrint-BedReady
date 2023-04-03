@@ -3,28 +3,58 @@
     <div class="well"><p>For the plugin to work properly add <span class="label label-info">@BEDREADY</span> at the beginning of your slicer's start gcode. For best results add gcode to your slicer's end gcode to position the head out of the way for the next comparison.</p><p><span class="label label-important">NOTE:</span> Lighting, camera view angle changes, and filament color that is similar to the bed can impact accuracy; adjust the Match Percentage setting below to compensate.</p></div>
 </div>
 <div class="well alert-danger" data-bind="visible: !snapshot_valid()"><p>Invalid Snapshot URL configured in <a href="javascript:void(0)" data-bind="click: function(){ settingsViewModel.show('#settings_webcam'); }">Webcam & Timelapse</a> settings. That setting must be configured with a full url for this plugin (as well as timelapse) to function properly.</p></div>
+
 <form class="form-vertical" id="settings_plugin_bedready_form" data-bind="visible: snapshot_valid()">
-    <div class="control-group">
-        <label class="control-label">{{ _('Reference Image') }}</label>
-        <div class="controls">
-            <img src="" alt="bed snapshot" data-bind="visible: settingsViewModel.settings.plugins.bedready.reference_image().length > 0, attr: {src: settingsViewModel.settings.plugins.bedready.reference_image}, style: {'padding-bottom': (settingsViewModel.settings.plugins.bedready.reference_image_timestamp().length > 0) ? '' : '10px'}">
-            <p data-bind="visible: settingsViewModel.settings.plugins.bedready.reference_image_timestamp().length > 0"><small>Last saved: <span data-bind="text: settingsViewModel.settings.plugins.bedready.reference_image_timestamp"></span></small></p>
-            <button class="btn btn-primary" data-bind="click: take_snapshot, enable: !taking_snapshot(), css: {disabled: taking_snapshot()}"><i class="fas" data-bind="css: {'fa-spinner fa-spin': taking_snapshot(), 'fa-camera': !taking_snapshot()}"></i> {{ _('Take Reference') }}</button> <button class="btn btn-primary" data-bind="visible: settingsViewModel.settings.plugins.bedready.reference_image().length > 0, click: test_snapshot, enable: !taking_snapshot(), css: {disabled: taking_snapshot()}"><i class="fas" data-bind="css: {'fa-spinner fa-spin': taking_snapshot(), 'fa-camera': !taking_snapshot()}"></i> {{ _('Test Snapshot') }}</button>
-        </div>
+  <h3>{{ _('Reference Image') }}</h3>
+  <div class="control-group">
+    <div class="controls">
+      <p>
+        <img src="" alt="bed snapshot" data-bind="visible: settingsViewModel.settings.plugins.bedready.reference_image().length > 0, attr: {src: 'plugin/bedready/images/' + settingsViewModel.settings.plugins.bedready.reference_image()}">
+      </p>
+      <button class="btn btn-primary" data-bind="click: take_snapshot, enable: !taking_snapshot(), css: {disabled: taking_snapshot()}"><i class="fas" data-bind="css: {'fa-spinner fa-spin': taking_snapshot(), 'fa-camera': !taking_snapshot()}"></i> {{ _('Take Snapshot') }}</button> 
+      <button class="btn btn-primary" data-bind="visible: settingsViewModel.settings.plugins.bedready.reference_image().length > 0, click: test_snapshot, enable: !taking_snapshot(), css: {disabled: taking_snapshot()}"><i class="fas" data-bind="css: {'fa-spinner fa-spin': taking_snapshot(), 'fa-camera': !taking_snapshot()}"></i> {{ _('Test Reference') }}</button>
     </div>
+  </div>
 	<div class="control-group">
-        <label class="control-label">{{ _('Match Percentage') }} <span data-bind="text: (settingsViewModel.settings.plugins.bedready.match_percentage() * 100).toFixed(1)"></span>%</label>
+    <label class="control-label">{{ _('Match Percentage') }} <span data-bind="text: (settingsViewModel.settings.plugins.bedready.match_percentage() * 100).toFixed(1)"></span>%</label>
 		<div class="controls">
-            <input type="number" style="width: 650px; display: none;" data-bind="slider: {min: 0, max: 1, step: .001, value: settingsViewModel.settings.plugins.bedready.match_percentage, tooltip: 'hide'}">
-        </div>
+      <input type="number" style="width: 650px; display: none;" data-bind="slider: {min: 0, max: 1, step: .001, value: settingsViewModel.settings.plugins.bedready.match_percentage, tooltip: 'hide'}">
+    </div>
 	</div>
 	<div class="control-group">
-        <label class="control-label">{{ _('Action') }}</label>
+    <label class="control-label">{{ _('Action') }}</label>
 		<div class="controls">
-            <select data-bind="value: settingsViewModel.settings.plugins.bedready.cancel_print">
-                <option value="False">Pause</option>
-                <option value="True">Cancel</option>
-            </select>
-        </div>
+      <select data-bind="value: settingsViewModel.settings.plugins.bedready.cancel_print">
+        <option value="False">Pause</option>
+        <option value="True">Cancel</option>
+      </select>
+    </div>
 	</div>
+
+  <h3 class="control-label">{{ _('Snapshots') }}</h3>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+      <th>Snapshot</th>
+      <th>Filename</th>
+      <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody data-bind="foreach: reference_images">
+    <tr>
+    <td>
+      <img alt="bed snapshot" data-bind="attr: {src: 'plugin/bedready/images/' + $data}" style="max-width: 100px">
+      </td>
+      <td data-bind="text: $data.split('/').pop()"></td>
+      <td>
+        <p>
+        <button class="btn btn-primary" data-bind="click:$root.set_default_snapshot">Set as Reference</button>
+        </p>
+        <p>
+        <button class="btn" data-bind="click:$root.delete_snapshot">Delete</button>
+        </p>
+      </td>
+    </tr>
+    </tbody>
+  </table>
 </form>

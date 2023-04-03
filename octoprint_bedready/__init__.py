@@ -6,6 +6,7 @@ import octoprint.plugin
 import requests
 import os
 import datetime
+from pathlib import Path
 from octoprint.events import Events
 
 
@@ -26,29 +27,41 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
 
     def get_api_commands(self):
         return dict(
-            take_snapshot=[]
+            take_snapshot=[],
+            list_snapshots=[],
+            delete_snapshot=["filename"],
         )
+
+    def get_snapshots(self):
+        return [f for f in os.listdir(self.get_plugin_data_folder()) 
+                if os.path.isfile(os.path.join(self.get_plugin_data_folder(), f))
+                and os.path.splitext(f)[1] == '.jpg'
+                and not f.endswith('test.jpg')
+            ]
 
     def on_api_command(self, command, data):
         import flask
-
         if command == "take_snapshot":
             if data.get("test", False):
-                relative_url = self.take_snapshot("test.jpg", "test_image")
+                relative_url = self.take_snapshot(data.get("name", "test.jpg"), "test_image")
+                reference = data.get("reference", self._settings.get(["reference_image"]))
                 if "test_image" in relative_url:
-                    similarity = self.compare_images(os.path.join(self.get_plugin_data_folder(), "reference.jpg"), relative_url["test_image"])
+                    similarity = self.compare_images(os.path.join(self.get_plugin_data_folder(), reference), relative_url["test_image"])
                     return flask.jsonify({"test_image": relative_url["url"], "similarity": round(similarity, 4)})
                 else:
                     return flask.jsonify({"error": relative_url})
             else:
-                relative_url = self.take_snapshot("reference.jpg")
-                if "reference_image" in relative_url:
-                    reference_image_timestamp = "{:%m/%d/%Y %H:%M:%S}".format(datetime.datetime.now())
-                    self._settings.set(["reference_image"], relative_url["url"])
-                    self._settings.set(["reference_image_timestamp"], reference_image_timestamp)
-                    relative_url["reference_image_timestamp"] = reference_image_timestamp
-                    self._settings.save()
-                return flask.jsonify(relative_url)
+                self.take_snapshot(data.get("name", "reference.jpg"))
+                return flask.jsonify(self.get_snapshots())
+        elif command == "list_snapshots":
+            return flask.jsonify(self.get_snapshots())
+        elif command == "delete_snapshot":
+            p = Path(self.get_plugin_data_folder()) / data.get("filename")
+            if not p.relative_to(self.get_plugin_data_folder()):
+                raise ValueError("Path is outside of plugin data folder")
+            elif not p.exists() or not p.is_file():
+                raise ValueError("Path is not a file")
+            p.unlink()
 
     def take_snapshot(self, filename=None, filetype="reference_image"):
         snapshot_url = self._settings.global_get(["webcam", "snapshot"])
@@ -72,7 +85,6 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
     def get_settings_defaults(self):
         return {
             "reference_image": "",
-            "reference_image_timestamp": "",
             "match_percentage": 0.98,
             "cancel_print": False
         }
