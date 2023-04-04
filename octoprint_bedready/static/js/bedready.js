@@ -8,6 +8,7 @@ $(function () {
     function BedreadyViewModel(parameters) {
         var self = this;
 
+        self.reference_images = ko.observableArray([]);
         self.taking_snapshot = ko.observable(false);
         self.popup_options = {
             title: 'Bed Not Ready',
@@ -62,27 +63,64 @@ $(function () {
             }
         };
 
-        self.take_snapshot = function () {
+        self.delete_snapshot = function(filename) {
+          OctoPrint.simpleApiCommand('bedready', 'delete_snapshot', {filename})
+              .done(function (response) {
+                self.reference_images.remove(filename);
+                new PNotify({
+                    title: 'Snapshot Deleted',
+                    text: filename,
+                    hide: true
+                });
+              })
+              .fail(function(response) {
+                new PNotify({
+                    title: 'Bed Ready Error',
+                    text: 'There was an error deleting the snapshot: ' + response.responseJSON.error,
+                    hide: true
+                });
+              });
+        }
+
+        self.set_default_snapshot = function(filename) {
+          self.settingsViewModel.settings.plugins.bedready.reference_image(filename);
+        }
+
+        self.take_snapshot = function() {
             self.taking_snapshot(true);
-            OctoPrint.simpleApiCommand('bedready', 'take_snapshot')
+            OctoPrint.simpleApiCommand('bedready', 'take_snapshot', {name: "reference_" + (new Date()).toISOString() + ".jpg"})
                 .done(function (response) {
-                    if (response.hasOwnProperty('reference_image')) {
-                        self.settingsViewModel.settings.plugins.bedready.reference_image(response.url);
-                        self.settingsViewModel.settings.plugins.bedready.reference_image_timestamp(response.reference_image_timestamp);
-                    } else {
-                        new PNotify({
-                            title: 'Bed Ready Error',
-                            text: '<div class="row-fluid"><p>There was an error saving the reference snapshot.</p></div><p><pre style="padding-top: 5px;">' + response.error + '</pre></p>',
-                            hide: true
-                        });
-                    }
-                    self.taking_snapshot(false);
+                  self.reference_images(response);
+                  self.taking_snapshot(false);
+                })
+                .fail(function (response) {
+                  new PNotify({
+                      title: 'Bed Ready Error',
+                      text: 'There was an error saving the snapshot: ' + response.responseJSON.error,
+                      hide: true
+                  });
+                  self.taking_snapshot(false);
                 });
         };
 
+        self.load_snapshots = function() {
+          OctoPrint.simpleApiCommand('bedready', 'list_snapshots')
+            .done(function (response) {
+              self.reference_images(response);
+            })
+            .fail(function (response) {
+              new PNotify({
+                  title: 'Bed Ready Error',
+                  text: 'Failed to load snapshots: ' + response.responseJSON.error,
+                  hide: true
+              });
+            });
+        }
+        self.load_snapshots();
+
         self.test_snapshot = function () {
             self.taking_snapshot(true);
-            OctoPrint.simpleApiCommand('bedready', 'take_snapshot', {test: true})
+            OctoPrint.simpleApiCommand('bedready', 'take_snapshot', {test: true, reference: self.settingsViewModel.settings.plugins.bedready.reference_image()})
                 .done(function (response) {
                     if (response.hasOwnProperty('test_image')) {
                         self.popup_options.text = '<div class="row-fluid"><p>Match percentage calculated as <span class="label label-info">' + (parseFloat(response.similarity) * 100).toFixed(2) + '%</span>.</p><p><img src="' + response.test_image + '"></p></div>';
