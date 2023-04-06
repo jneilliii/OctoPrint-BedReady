@@ -9,6 +9,11 @@ import datetime
 from pathlib import Path
 from octoprint.events import Events
 
+TEST_FILENAME = "test.jpg"
+COMPARISON_FILENAME = "comparison.jpg"
+
+class SnapshotError(Exception):
+    pass
 
 class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
                      octoprint.plugin.AssetPlugin,
@@ -28,6 +33,7 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
     def get_api_commands(self):
         return dict(
             take_snapshot=[],
+            check_bed=[],
             list_snapshots=[],
             delete_snapshot=["filename"],
         )
@@ -36,23 +42,23 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
         return [f for f in os.listdir(self.get_plugin_data_folder()) 
                 if os.path.isfile(os.path.join(self.get_plugin_data_folder(), f))
                 and os.path.splitext(f)[1] == '.jpg'
-                and not f.endswith('test.jpg')
+                and not f in (TEST_FILENAME, COMPARISON_FILENAME)
             ]
 
     def on_api_command(self, command, data):
         import flask
         if command == "take_snapshot":
-            if data.get("test", False):
-                relative_url = self.take_snapshot(data.get("name", "test.jpg"), "test_image")
-                reference = data.get("reference", self._settings.get(["reference_image"]))
-                if "test_image" in relative_url:
-                    similarity = self.compare_images(os.path.join(self.get_plugin_data_folder(), reference), relative_url["test_image"])
-                    return flask.jsonify({"test_image": relative_url["url"], "similarity": round(similarity, 4)})
-                else:
-                    return flask.jsonify({"error": relative_url})
-            else:
-                self.take_snapshot(data.get("name", "reference.jpg"))
-                return flask.jsonify(self.get_snapshots())
+            try:
+                self.take_snapshot(data.get("name"))
+            except e:
+                return flask.jsonify(dict(error=str(e)))
+            return flask.jsonify(self.get_snapshots())
+        elif command == "check_bed":
+            try:
+                result = self.check_bed(data.get("reference"), data.get("similarity"))
+                return flask.jsonify(result)
+            except e:
+                return flask.jsonify(dict(error=str(e)))
         elif command == "list_snapshots":
             return flask.jsonify(self.get_snapshots())
         elif command == "delete_snapshot":
@@ -63,10 +69,10 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
                 raise ValueError("Path is not a file")
             p.unlink()
 
-    def take_snapshot(self, filename=None, filetype="reference_image"):
+    def take_snapshot(self, filename=None):
         snapshot_url = self._settings.global_get(["webcam", "snapshot"])
         if snapshot_url == "" or not filename or not snapshot_url.startswith("http"):
-            return {"error": "missing or incorrect snapshot url in webcam & timelapse settings."}
+            raise ValueError("missing or incorrect snapshot url in webcam & timelapse settings.")
 
         download_file_name = os.path.join(self.get_plugin_data_folder(), filename)
         response = requests.get(snapshot_url, timeout=20)
@@ -74,11 +80,11 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
             with open(download_file_name, "wb") as f:
                 f.write(response.content)
             if os.path.exists(download_file_name):
-                return {filetype: download_file_name, "url": "plugin/bedready/images/{}?{:%Y%m%d%H%M%S}".format(filename, datetime.datetime.now())}
+                return None
             else:
-                return {"error": "unable to save file."}
+                raise SnapshotError("unable to save file.")
         else:
-            return {"error": "unable to download snapshot."}
+            raise SnapshotError("unable to download snapshot.")
 
     # ~~ SettingsPlugin mixin
 
@@ -125,12 +131,20 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
     # ~~ @ command hook
 
     def process_at_command(self, comm, phase, command, parameters, tags=None, *args, **kwargs):
-        if command != "BEDREADY" or self._settings.get(["reference_image"]) == "":
+        if command.upper() != "BEDREADY":
             return
+
+        reference = None
+        match_percentage = None
+        parameters = parameters.split()
+        if len(parameters) > 0:
+            reference = parameters[0]
+        if len(parameters) > 1:
+            match_percentage = float(parameters[1])
 
         with self._printer.job_on_hold():
             try:
-                message = self.check_bed()
+                message = self.check_bed(reference, match_percentage)
                 self._logger.debug("match: {}".format(message))
                 if not message.get("bed_clear"):
                     if self._settings.get_boolean(["cancel_print"]):
@@ -141,14 +155,18 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
             except Exception as e:
                 self._logger.info(e)
 
-    def check_bed(self):
-        comparison_image = self.take_snapshot("compare.jpg", "comparison_image")
-        if "error" in comparison_image:
-            self._logger.error(comparison_image["error"])
-            return
-        self._logger.debug("file saved: {}".format(comparison_image))
-        similarity = self.compare_images(os.path.join(self.get_plugin_data_folder(), "reference.jpg"), comparison_image["comparison_image"])
-        return {"bed_clear": similarity > self._settings.get_float(["match_percentage"]), "similarity": round(similarity, 4)}
+    def check_bed(self, reference=None, match_percentage=None):
+        if reference == None:
+            reference = self._settings.get(["reference_image"])
+        if match_percentage == None:
+            match_percentage = self._settings.get_float(["match_percentage"])
+
+        self._logger.info(f"check_bed with reference {reference} (threshold {match_percentage})")
+        self.take_snapshot(COMPARISON_FILENAME)
+        similarity = self.compare_images(
+            os.path.join(self.get_plugin_data_folder(), reference),
+            os.path.join(self.get_plugin_data_folder(), COMPARISON_FILENAME))
+        return {"bed_clear": similarity > match_percentage, "test_image": COMPARISON_FILENAME, "reference_image": reference, "similarity": round(similarity, 4)}
 
     # ~~ Softwareupdate hook
 
@@ -186,4 +204,7 @@ def __plugin_load__():
     }
 
     global __plugin_helpers__
-    __plugin_helpers__ = {'check_bed': __plugin_implementation__.check_bed}
+    __plugin_helpers__ = {
+            'check_bed': __plugin_implementation__.check_bed,
+            'take_snapshot': __plugin_implementation__.take_snapshot,
+            }

@@ -34,7 +34,10 @@ $(function () {
             }
 
             if (data.hasOwnProperty('similarity') && !data.bed_clear) {
-                self.popup_options.text = '<div class="row-fluid"><p>Match percentage calculated as <span class="label label-warning">' + (parseFloat(data.similarity) * 100).toFixed(2) + '%</span>.</p><p>Print job has been paused, check bed and then resume.</p><p><img src="/plugin/bedready/images/compare.jpg?' + Math.round(new Date().getTime() / 1000) + '"></p></div>';
+                const similarity_pct = (parseFloat(data.similarity) * 100).toFixed(2);
+                const reference_url = 'plugin/bedready/images/' + data.reference_image;
+                const test_url = 'plugin/bedready/images/' + data.test_image;
+                self.popup_options.text = `<div class="row-fluid"><p>Match percentage calculated as <span class="label label-info">${similarity_pct}%</span>.</p><p>Print job has been paused, check the bed and then resume.</p>Reference:<p><img src="${reference_url}"></img></p>Test:<p><img src="${test_url}"></img></p></div>`;
                 self.popup_options.type = 'error';
                 self.popup_options.title = 'Bed Not Ready';
                 if (self.popup === undefined) {
@@ -120,24 +123,25 @@ $(function () {
 
         self.test_snapshot = function () {
             self.taking_snapshot(true);
-            OctoPrint.simpleApiCommand('bedready', 'take_snapshot', {test: true, reference: self.settingsViewModel.settings.plugins.bedready.reference_image()})
+            OctoPrint.simpleApiCommand('bedready', 'check_bed', {reference: self.settingsViewModel.settings.plugins.bedready.reference_image()})
                 .done(function (response) {
-                    if (response.hasOwnProperty('test_image')) {
-                        self.popup_options.text = '<div class="row-fluid"><p>Match percentage calculated as <span class="label label-info">' + (parseFloat(response.similarity) * 100).toFixed(2) + '%</span>.</p><p><img src="' + response.test_image + '"></p></div>';
-                        if (parseFloat(response.similarity) < parseFloat(self.settingsViewModel.settings.plugins.bedready.match_percentage())) {
-                            self.popup_options.type = 'error';
-                        } else {
-                            self.popup_options.type = 'success';
-                        }
+                    const similarity_pct = (parseFloat(response.similarity) * 100).toFixed(2);
+                    const reference_url = 'plugin/bedready/images/' + response.reference_image;
+                    const test_url = 'plugin/bedready/images/' + response.test_image;
+                    self.popup_options.text = `<div class="row-fluid"><p>Match percentage calculated as <span class="label label-info">${similarity_pct}%</span>.</p>Reference:<p><img src="${reference_url}"></img></p>Test:<p><img src="${test_url}"></img></p></div>`;
+                    if (parseFloat(response.similarity) < parseFloat(self.settingsViewModel.settings.plugins.bedready.match_percentage())) {
+                        self.popup_options.type = 'error';
+                    } else {
+                        self.popup_options.type = 'success';
+                    }
 
-                        self.popup_options.title = 'Bed Ready Test';
-                        if (self.popup === undefined) {
-                            self.popup = PNotify.singleButtonNotify(self.popup_options);
-                        } else {
-                            self.popup.update(self.popup_options);
-                            if (self.popup.state === 'closed') {
-                                self.popup.open();
-                            }
+                    self.popup_options.title = 'Bed Ready Test';
+                    if (self.popup === undefined) {
+                        self.popup = PNotify.singleButtonNotify(self.popup_options);
+                    } else {
+                        self.popup.update(self.popup_options);
+                        if (self.popup.state === 'closed') {
+                            self.popup.open();
                         }
                     }
                     self.taking_snapshot(false);
