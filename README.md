@@ -4,9 +4,11 @@ Plugin that uses the camera and opencv to determine if the bed matches a referen
 
 ![Screenshot Bed Not Ready](screenshot_bed_not_ready.png)
 
-For the plugin to work properly add `@BEDREADY` at the beginning of your slicer's start gcode. For best results add gcode to your slicer's end gcode to position the head out of the way for the next comparison.
+For the plugin to work properly add `@BEDREADY` at the beginning of your slicer's start gcode. As of version 0.2.0 you can also pass a filename and match percentage along with the command, `@BEDREADY filename.jpg 0.8`. This is helpful for having multiple reference images for different types of bed surfaces, and adding the GCODE into the filament specific start gcode settings.
 
-**NOTE:** Lighting, camera view angle changes, and filament color that is similar to the bed can impact accuracy; adjust the Match Percentage setting below to compensate.
+**TIP**: For best results add gcode to your slicer's end gcode to position the head out of the way for the next comparison.
+
+**NOTE:** Lighting, camera view angle changes, and filament color that is similar to the bed can impact accuracy; adjust the Match Percentage setting to compensate.
 
 ## Setup
 
@@ -19,9 +21,27 @@ or manually using this URL:
 
 ![Settings Screenshot](screenshot_settings.png)
 
-Use the Test Snapshot button to compare the currently stored Reference Image with the bed.
+Use the Test Snapshot button to compare the currently selected default Reference Image with the bed.
 
 ![Test Results](screenshot_test_results.png)
+
+## Plugin Helpers
+
+As of version 0.2.0 there are also plugin helpers available for other plugins to utilize the comparison functions.
+
+```
+def on_after_startup(self):
+  helpers = self._plugin_manager.get_helpers("bedready", "check_bed", "take_snapshot")
+  if helpers and "check_bed" in helpers:
+    self.check_bed = helpers["check_bed"]
+  if helpers and "take_snapshot" in helpers:
+    self.take_snapshot = helpers["take_snapshot"]
+
+# Later in the plugin....
+
+self.take_snapshot("new_snapshot.jpg")
+self.check_bed("new_snapshot.jpg", 0.8)
+```
 
 ## Get Help
 
