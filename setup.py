@@ -14,7 +14,7 @@ plugin_package = "octoprint_bedready"
 plugin_name = "Bed Ready"
 
 # The plugin's version. Can be overwritten within OctoPrint's internal data via __plugin_version__ in the plugin module
-plugin_version = "0.2.0"
+plugin_version = "0.2.1"
 
 # The plugin's description. Can be overwritten within OctoPrint's internal data via __plugin_description__ in the plugin
 # module
@@ -33,7 +33,7 @@ plugin_url = "https://github.com/jneilliii/OctoPrint-BedReady"
 plugin_license = "AGPLv3"
 
 # Any additional requirements besides OctoPrint should be listed here
-plugin_requires = ["numpy==1.21.4", "opencv-python-headless"]
+plugin_requires = ["opencv-python-headless~=4.6.0.66"]
 
 ### --------------------------------------------------------------------------------------------------------------------
 ### More advanced options that you usually shouldn't have to touch follow after this point
