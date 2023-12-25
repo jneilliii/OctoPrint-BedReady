@@ -33,7 +33,7 @@ plugin_url = "https://github.com/jneilliii/OctoPrint-BedReady"
 plugin_license = "AGPLv3"
 
 # Any additional requirements besides OctoPrint should be listed here
-plugin_requires = ["opencv-python-headless~=4.6.0.66"]
+plugin_requires = ["opencv-python-headless~=4.8.1.78"]
 
 ### --------------------------------------------------------------------------------------------------------------------
 ### More advanced options that you usually shouldn't have to touch follow after this point
