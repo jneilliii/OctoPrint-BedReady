@@ -50,14 +50,14 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
         if command == "take_snapshot":
             try:
                 self.take_snapshot(data.get("name"))
-            except e:
+            except Exception as e:
                 return flask.jsonify(dict(error=str(e)))
             return flask.jsonify(self.get_snapshots())
         elif command == "check_bed":
             try:
                 result = self.check_bed(data.get("reference"), data.get("similarity"))
                 return flask.jsonify(result)
-            except e:
+            except Exception as e:
                 return flask.jsonify(dict(error=str(e)))
         elif command == "list_snapshots":
             return flask.jsonify(self.get_snapshots())
