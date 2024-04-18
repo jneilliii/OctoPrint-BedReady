@@ -39,7 +39,7 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
         )
 
     def get_snapshots(self):
-        return [f for f in os.listdir(self.get_plugin_data_folder()) 
+        return [f for f in os.listdir(self.get_plugin_data_folder())
                 if os.path.isfile(os.path.join(self.get_plugin_data_folder(), f))
                 and os.path.splitext(f)[1] == '.jpg'
                 and not f in (TEST_FILENAME, COMPARISON_FILENAME)
@@ -69,20 +69,43 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
                 raise ValueError("Path is not a file")
             p.unlink()
 
-    def take_snapshot(self, filename=None):
+    def take_snapshot(self, filename=None, enable_mask = None, mask_points = None):
         snapshot_url = self._settings.global_get(["webcam", "snapshot"])
         if snapshot_url == "" or not filename or not snapshot_url.startswith("http"):
             raise ValueError("missing or incorrect snapshot url in webcam & timelapse settings.")
 
+        if enable_mask == None:
+            enable_mask = self._settings.get_boolean(["enable_mask"])
+        if mask_points == None:
+            mask_points = self._settings.get(["mask_points"])
+
         download_file_name = os.path.join(self.get_plugin_data_folder(), filename)
         response = requests.get(snapshot_url, timeout=20)
         if response.status_code == 200:
-            with open(download_file_name, "wb") as f:
-                f.write(response.content)
-            if os.path.exists(download_file_name):
-                return None
+            if enable_mask:
+                import cv2
+                import numpy as np
+                imagearray = np.asarray(bytearray(response.content), dtype="uint8")
+                tempimage = cv2.imdecode(imagearray, cv2.IMREAD_COLOR)
+                maskpointsseperated = mask_points.split(':')
+                points = np.empty((0, 2), dtype=int)
+                for point in maskpointsseperated:
+                    points = np.append(points, np.fromstring(point, dtype=int, sep=',').reshape(1, 2), axis=0)
+                mask = np.zeros(tempimage.shape[:2], dtype="uint8")
+                cv2.fillPoly(mask, pts=[points], color=(255, 255, 255))
+                masked = cv2.bitwise_and(tempimage, tempimage, mask=mask)
+                writestatus = cv2.imwrite(download_file_name, masked)
+                if writestatus == True:
+                    return None
+                else:
+                    raise SnapshotError("unable to save file.")
             else:
-                raise SnapshotError("unable to save file.")
+                with open(download_file_name, "wb") as f:
+                    f.write(response.content)
+                if os.path.exists(download_file_name):
+                    return None
+                else:
+                    raise SnapshotError("unable to save file.")
         else:
             raise SnapshotError("unable to download snapshot.")
 
@@ -92,7 +115,9 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
         return {
             "reference_image": "",
             "match_percentage": 0.98,
-            "cancel_print": False
+            "cancel_print": False,
+            "enable_mask": False,
+            "mask_points": "20,20:620,20:580,400:80,400"
         }
 
     # ~~ AssetPlugin mixin

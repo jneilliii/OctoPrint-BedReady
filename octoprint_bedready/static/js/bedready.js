@@ -91,7 +91,7 @@ $(function () {
 
         self.take_snapshot = function() {
             self.taking_snapshot(true);
-            OctoPrint.simpleApiCommand('bedready', 'take_snapshot', {name: "reference_" + (new Date()).toISOString() + ".jpg"})
+            OctoPrint.simpleApiCommand('bedready', 'take_snapshot', {name: "reference_" + (new Date()).toISOString() + ".jpg"}, {enable_mask: self.settingsViewModel.settings.plugins.bedready.enable_mask()}, {mask_points: self.settingsViewModel.settings.plugins.bedready.mask_points()})
                 .done(function (response) {
                   self.reference_images(response);
                   self.taking_snapshot(false);
