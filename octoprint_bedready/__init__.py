@@ -5,7 +5,7 @@ import flask
 import octoprint.plugin
 import requests
 import os
-import datetime
+from datetime import datetime
 from pathlib import Path
 from octoprint.events import Events
 from octoprint.filemanager import FileDestinations
@@ -76,7 +76,7 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
             raise ValueError("missing or incorrect snapshot url in webcam & timelapse settings.")
 
         if enable_mask is None:
-            enable_mask = self._settings.get(["enable_mask"])
+            enable_mask = self._settings.get_boolean(["enable_mask"])
         if mask_points is None:
             mask_points = self._settings.get(["mask_points"])
         filename = self._file_manager.sanitize_name(FileDestinations.LOCAL, filename)
@@ -86,7 +86,8 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
         download_file_name = os.path.join(self.get_plugin_data_folder(), filename)
         response = requests.get(snapshot_url, timeout=20)
         if response.status_code == 200:
-            if enable_mask:
+            if bool(enable_mask) is True:
+                self._logger.debug("using mask")
                 import cv2
                 import numpy as np
                 imagearray = np.asarray(bytearray(response.content), dtype="uint8")
@@ -104,6 +105,7 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
                 else:
                     raise SnapshotError("unable to save file.")
             else:
+                self._logger.debug("not using mask")
                 with open(download_file_name, "wb") as f:
                     f.write(response.content)
                 if os.path.exists(download_file_name):
@@ -195,7 +197,8 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
         similarity = self.compare_images(
             os.path.join(self.get_plugin_data_folder(), reference),
             os.path.join(self.get_plugin_data_folder(), COMPARISON_FILENAME))
-        return {"bed_clear": similarity > match_percentage, "test_image": COMPARISON_FILENAME, "reference_image": reference, "similarity": round(similarity, 4)}
+        timestamp = datetime.now()
+        return {"bed_clear": similarity > match_percentage, "test_image": f"{COMPARISON_FILENAME}?{timestamp:%Y%m%d%H%M%S}", "reference_image": reference, "similarity": round(similarity, 4)}
 
     # ~~ Softwareupdate hook
 

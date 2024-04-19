@@ -15,36 +15,32 @@
       <button class="btn btn-primary" data-bind="visible: settingsViewModel.settings.plugins.bedready.reference_image().length > 0, click: test_snapshot, enable: !taking_snapshot(), css: {disabled: taking_snapshot()}"><i class="fas" data-bind="css: {'fa-spinner fa-spin': taking_snapshot(), 'fa-camera': !taking_snapshot()}"></i> {{ _('Test Reference') }}</button>
     </div>
   </div>
-	<div class="control-group">
+  <div class="control-group">
     <label class="control-label">{{ _('Match Percentage') }} <span data-bind="text: (settingsViewModel.settings.plugins.bedready.match_percentage() * 100).toFixed(1)"></span>%</label>
-		<div class="controls">
+    <div class="controls">
       <input type="number" style="width: 650px; display: none;" data-bind="slider: {min: 0, max: 1, step: .001, value: settingsViewModel.settings.plugins.bedready.match_percentage, tooltip: 'hide'}">
     </div>
     </div>
-	<div class="control-group">
-    <label class="control-label">{{ _('Enable/Disable Image Mask') }}</label>
-		<div class="controls">
-      <select data-bind="value: settingsViewModel.settings.plugins.bedready.enable_mask">
-        <option value="False">Disable Mask</option>
-        <option value="True">Enable Mask</option>
-      </select>
+  <div class="control-group">
+  <div class="controls">
+    <label class="checkbox"><input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.bedready.enable_mask"> {{ _('Use Image Mask') }}</label>
     </div>
-	</div>
-	<div class="control-group">
+  </div>
+  <div class="control-group">
     <label class="control-label">{{ _('Mask Points<br/>minimum 3 points, format like:<br/>20,20:620,20:580,400:80,400<br/>points start at top left, (x,y) x is more right and y is more down<br/>Default camera resolution is 640x480') }}</label>
-		<div class="controls">
+    <div class="controls">
         <input type="text" data-bind="value: settingsViewModel.settings.plugins.bedready.mask_points">
     </div>
-	</div>
-	<div class="control-group">
+  </div>
+  <div class="control-group">
     <label class="control-label">{{ _('Action') }}</label>
-		<div class="controls">
+    <div class="controls">
       <select data-bind="value: settingsViewModel.settings.plugins.bedready.cancel_print">
         <option value="False">Pause</option>
         <option value="True">Cancel</option>
       </select>
     </div>
-	</div>
+  </div>
 
   <h3 class="control-label">{{ _('Snapshots') }}</h3>
   <table class="table table-striped">
