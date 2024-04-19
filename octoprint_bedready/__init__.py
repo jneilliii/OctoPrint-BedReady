@@ -56,7 +56,7 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
             return flask.jsonify(self.get_snapshots())
         elif command == "check_bed":
             try:
-                result = self.check_bed(data.get("reference"), data.get("similarity"))
+                result = self.check_bed(data.get("reference"), data.get("similarity"), data.get("enable_mask"), data.get("mask_points"))
                 return flask.jsonify(result)
             except Exception as e:
                 return flask.jsonify(dict(error=str(e)))
@@ -186,14 +186,18 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
             except Exception as e:
                 self._logger.info(e)
 
-    def check_bed(self, reference=None, match_percentage=None):
-        if reference == None:
+    def check_bed(self, reference=None, match_percentage=None, enable_mask=None, mask_points=None):
+        if reference is None:
             reference = self._settings.get(["reference_image"])
-        if match_percentage == None:
+        if match_percentage is None:
             match_percentage = self._settings.get_float(["match_percentage"])
+        if enable_mask is None:
+            enable_mask = self._settings.get_boolean(["enable_mask"])
+        if mask_points is None:
+            mask_points = self._settings.get(["mask_points"])
 
         self._logger.info(f"check_bed with reference {reference} (threshold {match_percentage})")
-        self.take_snapshot(COMPARISON_FILENAME)
+        self.take_snapshot(COMPARISON_FILENAME, enable_mask, mask_points)
         similarity = self.compare_images(
             os.path.join(self.get_plugin_data_folder(), reference),
             os.path.join(self.get_plugin_data_folder(), COMPARISON_FILENAME))

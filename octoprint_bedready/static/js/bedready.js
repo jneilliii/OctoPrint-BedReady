@@ -137,7 +137,7 @@ $(function () {
 
         self.test_snapshot = function () {
             self.taking_snapshot(true);
-            OctoPrint.simpleApiCommand('bedready', 'check_bed', {reference: self.settingsViewModel.settings.plugins.bedready.reference_image()})
+            OctoPrint.simpleApiCommand('bedready', 'check_bed', {reference: self.settingsViewModel.settings.plugins.bedready.reference_image(), enable_mask: self.settingsViewModel.settings.plugins.bedready.enable_mask(), mask_points: self.settingsViewModel.settings.plugins.bedready.mask_points()})
                 .done(function (response) {
                     const similarity_pct = (parseFloat(response.similarity) * 100).toFixed(2);
                     const reference_url = 'plugin/bedready/images/' + response.reference_image;
