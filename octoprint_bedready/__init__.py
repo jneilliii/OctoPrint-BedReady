@@ -8,6 +8,7 @@ import os
 import datetime
 from pathlib import Path
 from octoprint.events import Events
+from octoprint.filemanager import FileDestinations
 
 TEST_FILENAME = "test.jpg"
 COMPARISON_FILENAME = "comparison.jpg"
@@ -49,7 +50,7 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
         import flask
         if command == "take_snapshot":
             try:
-                self.take_snapshot(data.get("name"))
+                self.take_snapshot(data.get("name"), data.get("enable_mask"), data.get("mask_points"))
             except Exception as e:
                 return flask.jsonify(dict(error=str(e)))
             return flask.jsonify(self.get_snapshots())
@@ -69,15 +70,18 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
                 raise ValueError("Path is not a file")
             p.unlink()
 
-    def take_snapshot(self, filename=None, enable_mask = None, mask_points = None):
+    def take_snapshot(self, filename=None, enable_mask=None, mask_points=None):
         snapshot_url = self._settings.global_get(["webcam", "snapshot"])
         if snapshot_url == "" or not filename or not snapshot_url.startswith("http"):
             raise ValueError("missing or incorrect snapshot url in webcam & timelapse settings.")
 
-        if enable_mask == None:
-            enable_mask = self._settings.get_boolean(["enable_mask"])
-        if mask_points == None:
+        if enable_mask is None:
+            enable_mask = self._settings.get(["enable_mask"])
+        if mask_points is None:
             mask_points = self._settings.get(["mask_points"])
+        filename = self._file_manager.sanitize_name(FileDestinations.LOCAL, filename)
+
+        self._logger.debug(f"snapshot_url: {snapshot_url}, filename: {filename}, enable_mask: {enable_mask}, mask_points: {mask_points}")
 
         download_file_name = os.path.join(self.get_plugin_data_folder(), filename)
         response = requests.get(snapshot_url, timeout=20)
@@ -170,7 +174,7 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
         with self._printer.job_on_hold():
             try:
                 message = self.check_bed(reference, match_percentage)
-                self._logger.debug("match: {}".format(message))
+                self._logger.debug(f"match: {message}")
                 if not message.get("bed_clear"):
                     if self._settings.get_boolean(["cancel_print"]):
                         self._printer.cancel_print(tags={self._identifier})

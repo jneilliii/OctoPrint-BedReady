@@ -91,9 +91,23 @@ $(function () {
 
         self.take_snapshot = function() {
             self.taking_snapshot(true);
-            OctoPrint.simpleApiCommand('bedready', 'take_snapshot', {name: "reference_" + (new Date()).toISOString() + ".jpg"}, {enable_mask: self.settingsViewModel.settings.plugins.bedready.enable_mask()}, {mask_points: self.settingsViewModel.settings.plugins.bedready.mask_points()})
+            OctoPrint.simpleApiCommand('bedready', 'take_snapshot', {name: "reference_" + (new Date()).toISOString() + ".jpg", enable_mask: self.settingsViewModel.settings.plugins.bedready.enable_mask(), mask_points: self.settingsViewModel.settings.plugins.bedready.mask_points()})
                 .done(function (response) {
-                  self.reference_images(response);
+					if (response.hasOwnProperty('error')) {
+						self.popup_options.text = 'There was an error: \n<pre>' + response.error + '</pre>';
+						self.popup_options.type = 'error';
+						self.popup_options.title = 'Bed Ready Error';
+						if (self.popup === undefined) {
+							self.popup = PNotify.singleButtonNotify(self.popup_options);
+						} else {
+							self.popup.update(self.popup_options);
+							if (self.popup.state === 'closed'){
+								self.popup.open();
+							}
+						}
+					} else {
+						self.reference_images(response);
+					}
                   self.taking_snapshot(false);
                 })
                 .fail(function (response) {
