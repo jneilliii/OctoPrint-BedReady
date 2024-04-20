@@ -9,7 +9,7 @@
   <div class="control-group">
     <div class="controls">
       <p>
-        <img src="" alt="bed snapshot" data-bind="visible: settingsViewModel.settings.plugins.bedready.reference_image().length > 0, attr: {src: 'plugin/bedready/images/' + settingsViewModel.settings.plugins.bedready.reference_image()}">
+        <img src="" id="reference_image" alt="bed snapshot" data-bind="visible: settingsViewModel.settings.plugins.bedready.reference_image().length > 0, attr: {src: 'plugin/bedready/images/' + settingsViewModel.settings.plugins.bedready.reference_image()}">
       </p>
       <button class="btn btn-primary" data-bind="click: take_snapshot, enable: !taking_snapshot(), css: {disabled: taking_snapshot()}"><i class="fas" data-bind="css: {'fa-spinner fa-spin': taking_snapshot(), 'fa-camera': !taking_snapshot()}"></i> {{ _('Take Snapshot') }}</button>
       <button class="btn btn-primary" data-bind="visible: settingsViewModel.settings.plugins.bedready.reference_image().length > 0, click: test_snapshot, enable: !taking_snapshot(), css: {disabled: taking_snapshot()}"><i class="fas" data-bind="css: {'fa-spinner fa-spin': taking_snapshot(), 'fa-camera': !taking_snapshot()}"></i> {{ _('Test Reference') }}</button>
@@ -24,13 +24,9 @@
   <div class="control-group">
   <div class="controls">
     <label class="checkbox"><input type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.bedready.enable_mask"> {{ _('Use Image Mask') }}</label>
-    </div>
+    <div class="well">left mouse click to create points<br>click on first point to finalize mask<br>right click point to delete<br>hold shift to align with other points</div>
+    <input class="input-block-level" type="hidden" data-bind="value: settingsViewModel.settings.plugins.bedready.mask_points">
   </div>
-  <div class="control-group">
-    <label class="control-label">{{ _('Mask Points<br/>minimum 3 points, format like:<br/>20,20:620,20:580,400:80,400<br/>points start at top left, (x,y) x is more right and y is more down<br/>Default camera resolution is 640x480') }}</label>
-    <div class="controls">
-        <input type="text" data-bind="value: settingsViewModel.settings.plugins.bedready.mask_points">
-    </div>
   </div>
   <div class="control-group">
     <label class="control-label">{{ _('Action') }}</label>

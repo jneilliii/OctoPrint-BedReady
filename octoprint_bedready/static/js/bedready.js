@@ -4,6 +4,7 @@
  * Author: jneilliii
  * License: AGPLv3
  */
+
 $(function () {
     function BedreadyViewModel(parameters) {
         var self = this;
@@ -20,6 +21,7 @@ $(function () {
                 sticker: false
             }
         };
+        self.lasso_enabled = false;
 
         self.settingsViewModel = parameters[0];
         self.controlViewModel = parameters[1];
@@ -27,6 +29,41 @@ $(function () {
         self.snapshot_valid = ko.pureComputed(function(){
             return self.settingsViewModel.webcam_snapshotUrl().length > 0 && self.settingsViewModel.webcam_snapshotUrl().startsWith('http');
         });
+
+        self.onAllBound = function(data) {
+			self.settingsViewModel.settings.plugins.bedready.enable_mask.subscribe(function(newValue){
+				self.toggle_lasso();
+			});
+
+            self.toggle_lasso();
+        };
+
+        self.toggle_lasso = function() {
+            if (!self.lasso_enabled && self.settingsViewModel.settings.plugins.bedready.enable_mask()) {
+                self.lasso = createLasso({
+                    element: document.querySelector('img#reference_image'),
+                    radius: 10,
+                    onChange(polygon) {
+                        let mask_points = polygon.split(" ");
+                        let floored_points = [];
+                        for (let i = 0; i < mask_points.length; i++) {
+                            let coords = mask_points[i].split(',').map(Math.round);
+                            floored_points.push(coords.join(","));
+                        }
+                        self.settingsViewModel.settings.plugins.bedready.mask_points(floored_points.join(" "));
+                    }
+                });
+
+                self.lasso.setPath(self.settingsViewModel.settings.plugins.bedready.mask_points());
+                self.lasso_enabled = true;
+            } else if (!self.settingsViewModel.settings.plugins.bedready.enable_mask()) {
+                $('#settings_plugin_bedready_form canvas').replaceWith('<img src="plugin/bedready/images/'+self.settingsViewModel.settings.plugins.bedready.reference_image()+'" id="reference_image" alt="bed snapshot">');
+                self.lasso_enabled = false;
+                console.log("mask disabled");
+            } else {
+                console.log("mask already enabled");
+            }
+        };
 
         self.onDataUpdaterPluginMessage = function (plugin, data) {
             if (plugin !== 'bedready') {
@@ -64,6 +101,10 @@ $(function () {
                     }
                 }
             }
+        };
+
+        self.update_mask_points = function(img, data) {
+            console.log(data);
         };
 
         self.delete_snapshot = function(filename) {

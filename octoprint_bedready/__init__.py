@@ -92,7 +92,7 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
                 import numpy as np
                 imagearray = np.asarray(bytearray(response.content), dtype="uint8")
                 tempimage = cv2.imdecode(imagearray, cv2.IMREAD_COLOR)
-                maskpointsseperated = mask_points.split(':')
+                maskpointsseperated = mask_points.split(' ')
                 points = np.empty((0, 2), dtype=int)
                 for point in maskpointsseperated:
                     points = np.append(points, np.fromstring(point, dtype=int, sep=',').reshape(1, 2), axis=0)
@@ -123,7 +123,7 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
             "match_percentage": 0.98,
             "cancel_print": False,
             "enable_mask": False,
-            "mask_points": "20,20:620,20:580,400:80,400"
+            "mask_points": "20,20 620,20 580,400 80,400"
         }
 
     # ~~ AssetPlugin mixin
@@ -131,7 +131,7 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
     def get_assets(self):
         return {
             "css": ["css/bedready.css"],
-            "js": ["js/bedready.js"]
+            "js": ["js/lasso-canvas-image.min.js", "js/bedready.js"]
         }
 
     # ~~ TemplatePlugin mixin
