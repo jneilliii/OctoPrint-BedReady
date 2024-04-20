@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from octoprint.events import Events
 from octoprint.filemanager import FileDestinations
+from octoprint.util import version
 
 TEST_FILENAME = "test.jpg"
 COMPARISON_FILENAME = "comparison.jpg"
@@ -71,7 +72,10 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
             p.unlink()
 
     def take_snapshot(self, filename=None, enable_mask=None, mask_points=None):
-        snapshot_url = self._settings.global_get(["webcam", "snapshot"])
+        if version.is_octoprint_compatible(">=1.9.0"):
+            snapshot_url = self._settings.global_get(["plugins", "classicwebcam", "snapshot"])
+        else:
+            snapshot_url = self._settings.global_get(["webcam", "snapshot"])
         if snapshot_url == "" or not filename or not snapshot_url.startswith("http"):
             raise ValueError("missing or incorrect snapshot url in webcam & timelapse settings.")
 

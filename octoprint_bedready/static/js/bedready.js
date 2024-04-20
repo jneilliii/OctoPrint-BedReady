@@ -59,10 +59,7 @@ $(function () {
             } else if (!self.settingsViewModel.settings.plugins.bedready.enable_mask()) {
                 $('#settings_plugin_bedready_form canvas').replaceWith('<img src="plugin/bedready/images/'+self.settingsViewModel.settings.plugins.bedready.reference_image()+'" id="reference_image" alt="bed snapshot">');
                 self.lasso_enabled = false;
-                console.log("mask disabled");
-            } else {
-                console.log("mask already enabled");
-            }
+            } 
         };
 
         self.onDataUpdaterPluginMessage = function (plugin, data) {
@@ -124,11 +121,18 @@ $(function () {
                     hide: true
                 });
               });
-        }
+        };
 
         self.set_default_snapshot = function(filename) {
           self.settingsViewModel.settings.plugins.bedready.reference_image(filename);
-        }
+          if(self.lasso_enabled) {
+              self.lasso_enabled = false;
+              $('#settings_plugin_bedready_form canvas').replaceWith('<img src="plugin/bedready/images/'+self.settingsViewModel.settings.plugins.bedready.reference_image()+'" id="reference_image" alt="bed snapshot">');
+              self.toggle_lasso();
+          } else {
+              $('#reference_image').attr('src', 'plugin/bedready/images/'+self.settingsViewModel.settings.plugins.bedready.reference_image());
+          }
+        };
 
         self.take_snapshot = function() {
             self.taking_snapshot(true);
@@ -173,30 +177,45 @@ $(function () {
                   hide: true
               });
             });
-        }
+        };
+
         self.load_snapshots();
 
         self.test_snapshot = function () {
             self.taking_snapshot(true);
             OctoPrint.simpleApiCommand('bedready', 'check_bed', {reference: self.settingsViewModel.settings.plugins.bedready.reference_image(), enable_mask: self.settingsViewModel.settings.plugins.bedready.enable_mask(), mask_points: self.settingsViewModel.settings.plugins.bedready.mask_points()})
                 .done(function (response) {
-                    const similarity_pct = (parseFloat(response.similarity) * 100).toFixed(2);
-                    const reference_url = 'plugin/bedready/images/' + response.reference_image;
-                    const test_url = 'plugin/bedready/images/' + response.test_image;
-                    self.popup_options.text = `<div class="row-fluid"><p>Match percentage calculated as <span class="label label-info">${similarity_pct}%</span>.</p>Reference:<p><img src="${reference_url}"></img></p>Test:<p><img src="${test_url}"></img></p></div>`;
-                    if (parseFloat(response.similarity) < parseFloat(self.settingsViewModel.settings.plugins.bedready.match_percentage())) {
-                        self.popup_options.type = 'error';
-                    } else {
-                        self.popup_options.type = 'success';
-                    }
+                    if (response.hasOwnProperty('error')) {
+						self.popup_options.text = 'There was an error: \n<pre>' + response.error + '</pre>';
+						self.popup_options.type = 'error';
+						self.popup_options.title = 'Bed Ready Error';
+						if (self.popup === undefined) {
+							self.popup = PNotify.singleButtonNotify(self.popup_options);
+						} else {
+							self.popup.update(self.popup_options);
+							if (self.popup.state === 'closed'){
+								self.popup.open();
+							}
+						}
+					} else {
+                        const similarity_pct = (parseFloat(response.similarity) * 100).toFixed(2);
+                        const reference_url = 'plugin/bedready/images/' + response.reference_image;
+                        const test_url = 'plugin/bedready/images/' + response.test_image;
+                        self.popup_options.text = `<div class="row-fluid"><p>Match percentage calculated as <span class="label label-info">${similarity_pct}%</span>.</p>Reference:<p><img src="${reference_url}"></img></p>Test:<p><img src="${test_url}"></img></p></div>`;
+                        if (parseFloat(response.similarity) < parseFloat(self.settingsViewModel.settings.plugins.bedready.match_percentage())) {
+                            self.popup_options.type = 'error';
+                        } else {
+                            self.popup_options.type = 'success';
+                        }
 
-                    self.popup_options.title = 'Bed Ready Test';
-                    if (self.popup === undefined) {
-                        self.popup = PNotify.singleButtonNotify(self.popup_options);
-                    } else {
-                        self.popup.update(self.popup_options);
-                        if (self.popup.state === 'closed') {
-                            self.popup.open();
+                        self.popup_options.title = 'Bed Ready Test';
+                        if (self.popup === undefined) {
+                            self.popup = PNotify.singleButtonNotify(self.popup_options);
+                        } else {
+                            self.popup.update(self.popup_options);
+                            if (self.popup.state === 'closed') {
+                                self.popup.open();
+                            }
                         }
                     }
                     self.taking_snapshot(false);
