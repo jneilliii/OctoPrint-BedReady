@@ -13,6 +13,7 @@
       </p>
       <button class="btn btn-primary" data-bind="click: take_snapshot, enable: !taking_snapshot(), css: {disabled: taking_snapshot()}"><i class="fas" data-bind="css: {'fa-spinner fa-spin': taking_snapshot(), 'fa-camera': !taking_snapshot()}"></i> {{ _('Take Snapshot') }}</button>
       <button class="btn btn-primary" data-bind="visible: settingsViewModel.settings.plugins.bedready.reference_image().length > 0, click: test_snapshot, enable: !taking_snapshot(), css: {disabled: taking_snapshot()}"><i class="fas" data-bind="css: {'fa-spinner fa-spin': taking_snapshot(), 'fa-camera': !taking_snapshot()}"></i> {{ _('Test Reference') }}</button>
+      <button class="btn btn-danger" data-bind="visible: settingsViewModel.settings.plugins.bedready.enable_mask(), click: clear_lasso"><i class="fas fa-eraser"></i> {{ _('Clear Mask') }}</button>
     </div>
   </div>
   <div class="control-group">

@@ -38,6 +38,10 @@ $(function () {
             self.toggle_lasso();
         };
 
+        self.clear_lasso = function() {
+            self.lasso.reset();
+        };
+
         self.toggle_lasso = function() {
             if (!self.lasso_enabled && self.settingsViewModel.settings.plugins.bedready.enable_mask()) {
                 self.lasso = createLasso({
@@ -59,7 +63,7 @@ $(function () {
             } else if (!self.settingsViewModel.settings.plugins.bedready.enable_mask()) {
                 $('#settings_plugin_bedready_form canvas').replaceWith('<img src="plugin/bedready/images/'+self.settingsViewModel.settings.plugins.bedready.reference_image()+'" id="reference_image" alt="bed snapshot">');
                 self.lasso_enabled = false;
-            } 
+            }
         };
 
         self.onDataUpdaterPluginMessage = function (plugin, data) {
