@@ -159,25 +159,24 @@ $(function () {
         };
 
         self.add_roi_point = function(x, y) {
-
+            var canvas = document.getElementById('overlay-canvas');
             if (self.settingsViewModel.settings.plugins.bedready.roi_points().length == 0) {
-                var canvas = document.getElementById('overlay-canvas');
                 self.settingsViewModel.settings.plugins.bedready.roi_points.push(
-                    { x: ko.observable(Math.max(0, x-60)), y: ko.observable(Math.max(0, y-60)) }
+                    { x: ko.observable(Math.max(0, x-60)/canvas.width), y: ko.observable(Math.max(0, y-60)/canvas.height) }
                 );
                 self.settingsViewModel.settings.plugins.bedready.roi_points.push(
-                    { x: ko.observable(Math.max(0, x-60)), y: ko.observable(Math.min(canvas.height, y+60)) }
+                    { x: ko.observable(Math.max(0, x-60)/canvas.width), y: ko.observable(Math.min(canvas.height, y+60)/canvas.height) }
                 );
                 self.settingsViewModel.settings.plugins.bedready.roi_points.push(
-                    { x: ko.observable(Math.min(canvas.width, x+60)), y: ko.observable(Math.min(canvas.height, y+60)) }
+                    { x: ko.observable(Math.min(canvas.width, x+60)/canvas.width), y: ko.observable(Math.min(canvas.height, y+60)/canvas.height) }
                 );
                 self.settingsViewModel.settings.plugins.bedready.roi_points.push(
-                    { x: ko.observable(Math.min(canvas.width, x+60)), y: ko.observable(Math.max(0, y-60)) }
+                    { x: ko.observable(Math.min(canvas.width, x+60)/canvas.width), y: ko.observable(Math.max(0, y-60)/canvas.height) }
                 );
             }
             else {
                 self.settingsViewModel.settings.plugins.bedready.roi_points.push(
-                    { x: ko.observable(x), y: ko.observable(y) }
+                    { x: ko.observable(x/canvas.width), y: ko.observable(y/canvas.height) }
                 );
             }
             self.drawROI();
@@ -200,7 +199,7 @@ $(function () {
             ctx.beginPath();
             ctx.rect(0, 0, canvas.width, canvas.height);
             self.settingsViewModel.settings.plugins.bedready.roi_points().forEach(function(point, index) {
-                ctx[index === 0 ? 'moveTo' : 'lineTo'](point.x(), point.y());
+                ctx[index === 0 ? 'moveTo' : 'lineTo'](point.x()*canvas.width, point.y()*canvas.height);
             });
             ctx.clip();
             ctx.strokeStyle = 'lightgreen';
@@ -215,7 +214,7 @@ $(function () {
             // Draw quadrilateral corners
             ctx.fillStyle = "blue";
             self.settingsViewModel.settings.plugins.bedready.roi_points().forEach(function(point, index) {
-                ctx.fillRect(point.x()-3, point.y()-3, 6, 6);
+                ctx.fillRect(point.x()*canvas.width-3, point.y()*canvas.height-3, 6, 6);
             });
         };
 
@@ -226,7 +225,7 @@ $(function () {
             var mouseX = event.clientX - rect.left;
             var mouseY = event.clientY - rect.top;
             self.settingsViewModel.settings.plugins.bedready.roi_points().forEach(function(point) {
-                if (Math.abs(point.x() - mouseX) < 10 && Math.abs(point.y() - mouseY) < 10) {
+                if (Math.abs(point.x()*canvas.width - mouseX) < 10 && Math.abs(point.y()*canvas.height - mouseY) < 10) {
                     self.selectedPoint = point;
                     if(event.ctrlKey) {
                         self.settingsViewModel.settings.plugins.bedready.roi_points.remove(point);
@@ -247,8 +246,8 @@ $(function () {
                 var rect = event.target.getBoundingClientRect();
                 var mouseX = event.clientX - rect.left;
                 var mouseY = event.clientY - rect.top;
-                self.selectedPoint.x(mouseX);
-                self.selectedPoint.y(mouseY);
+                self.selectedPoint.x(mouseX/rect.width);
+                self.selectedPoint.y(mouseY/rect.height);
                 self.drawROI();
             }
         };
