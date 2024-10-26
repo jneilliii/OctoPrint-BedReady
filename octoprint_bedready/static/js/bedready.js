@@ -87,8 +87,6 @@ $(function () {
 
         self.set_default_snapshot = function(filename) {
           self.settingsViewModel.settings.plugins.bedready.reference_image(filename);
-          // ToDo: put in proper place...
-          self.initializeCanvas(); // Initialize the canvas when the reference image
         }
 
         self.take_snapshot = function() {
@@ -168,6 +166,19 @@ $(function () {
             { x: ko.observable(250), y: ko.observable(50) }
         ]);
 
+        self.add_roi_point = function(x, y) {            
+            self.roi_points.push(
+                { x: ko.observable(x), y: ko.observable(y) }
+            );
+            self.drawROI();
+            console.log("Added new point: (%d, %d)", x, y);
+        }
+
+        self.rm_roi_point = function(x, y) {
+            self.roi_points.remove({x: ko.observable(x), y: ko.observable(y)});
+            self.drawROI();
+        }
+
         // Draw the ROI boundary based on the defined points
         self.drawROI = function() {
             var canvas = document.getElementById('overlay-canvas');
@@ -207,9 +218,18 @@ $(function () {
             self.roi_points().forEach(function(point) {
                 if (Math.abs(point.x() - mouseX) < 10 && Math.abs(point.y() - mouseY) < 10) {
                     self.selectedPoint = point;
+                    if(event.ctrlKey) {
+                        self.roi_points.remove(point);
+                        self.drawROI();
+                        console.log("Removing ROI point: (%d, %d)", point.x(), point.y());
+                    }
                 }
             });
-            console.log("MouseDown: (%d, %d)", mouseX, mouseY);
+            if (event.ctrlKey && self.selectedPoint == null) {
+                self.add_roi_point(mouseX, mouseY);
+                console.log("Added new point: (%d, %d)", mouseX, mouseY);
+                console.log(self.roi_points);
+            }
         };
 
         self.mouseMove = function(data, event) {
@@ -226,6 +246,29 @@ $(function () {
         self.mouseUp = function(data, event) {
             self.selectedPoint = null;
         };
+        
+        self.toggle_enable_roi = function() {
+            if(document.getElementById('image-enable_roi_cb').checked) {
+                console.log("ROI Enabled!");
+                self.initializeCanvas();
+            }
+        }
+        self.onReferenceLoaded = function() {
+            console.log("Loaded Reference Image!");
+            self.initializeCanvas();            
+        }
+
+        document.getElementById('image-container').addEventListener('onresize', function(){
+            console.log("IMG resize!");
+            self.initializeCanvas();
+        });
+
+        // Auto initialize ROI canvas when reference image is loaded:
+        var ref_snapshot_img = document.getElementById('reference-snapshot')
+        ref_snapshot_img.addEventListener('load', self.onReferenceLoaded)
+        if (ref_snapshot_img.complete) {
+            self.onReferenceLoaded();
+        }
     }
 
     OCTOPRINT_VIEWMODELS.push({

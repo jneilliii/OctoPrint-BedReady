@@ -11,7 +11,7 @@
       <p>
         <div id="image-container" style="position: relative;" data-bind="visible: settingsViewModel.settings.plugins.bedready.reference_image().length > 0">
           <img id="reference-snapshot" src="" alt="bed snapshot" style="position: relative;" data-bind="attr: {src: 'plugin/bedready/images/' + settingsViewModel.settings.plugins.bedready.reference_image()}">
-          <canvas id="overlay-canvas" data-bind="event: {
+          <canvas id="overlay-canvas" data-bind="visible: settingsViewModel.settings.plugins.bedready.enable_roi, event: {
               mousedown: mouseDown, 
               mousemove: mouseMove,
               mouseup: mouseUp,
@@ -21,6 +21,14 @@
       </p>
       <button class="btn btn-primary" data-bind="click: take_snapshot, enable: !taking_snapshot(), css: {disabled: taking_snapshot()}"><i class="fas" data-bind="css: {'fa-spinner fa-spin': taking_snapshot(), 'fa-camera': !taking_snapshot()}"></i> {{ _('Take Snapshot') }}</button> 
       <button class="btn btn-primary" data-bind="visible: settingsViewModel.settings.plugins.bedready.reference_image().length > 0, click: test_snapshot, enable: !taking_snapshot(), css: {disabled: taking_snapshot()}"><i class="fas" data-bind="css: {'fa-spinner fa-spin': taking_snapshot(), 'fa-camera': !taking_snapshot()}"></i> {{ _('Test Reference') }}</button>
+    </div>
+    <h4>{{ _('Region of Interest') }}</h4>
+    <label class="checkbox">Enable Region of Interest
+        <input id="enable_roi_cb" type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.bedready.enable_roi, click: toggle_enable_roi">
+    </label>
+    <div class="row-fluid" data-bind="visible: settingsViewModel.settings.plugins.bedready.enable_roi">
+        <div class="well"><p>Move around the points defining the ROI on the reference image canvas above by dragging the blue corner points to the edges of the print bed. CTRL + click on empty parts of the canvas to add a new point to the polygon and CTRL + click on a point of the polygon to remove it.
+        </div>
     </div>
   </div>
 	<div class="control-group">
