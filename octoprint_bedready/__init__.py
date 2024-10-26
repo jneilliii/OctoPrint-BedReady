@@ -92,8 +92,16 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
         return {
             "reference_image": "",
             "match_percentage": 0.98,
-            "cancel_print": False
+            "cancel_print": False,
+            "enable_roi": False,
+            "roi_points": []
         }
+    
+    def on_settings_save(self, data):
+        self._logger.info(f"Settings saved:\n{data}")
+        
+        # default save function
+        octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
     # ~~ AssetPlugin mixin
 
@@ -153,7 +161,7 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
                         self._printer.pause_print(tags={self._identifier})
                 self._plugin_manager.send_plugin_message(self._identifier, message)
             except Exception as e:
-                self._logger.info(e)
+                self._logger.error(e)
 
     def check_bed(self, reference=None, match_percentage=None):
         if reference == None:

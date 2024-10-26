@@ -158,25 +158,30 @@ $(function () {
             $(canvas).css('pointer-events', 'auto'); // Make sure canvas is interactive
         };
 
-        // Observable array to manage points on the canvas
-        self.roi_points = ko.observableArray([
-            { x: ko.observable(50), y: ko.observable(50) },
-            { x: ko.observable(50), y: ko.observable(150) },
-            { x: ko.observable(250), y: ko.observable(150) },
-            { x: ko.observable(250), y: ko.observable(50) }
-        ]);
+        self.add_roi_point = function(x, y) {
 
-        self.add_roi_point = function(x, y) {            
-            self.roi_points.push(
-                { x: ko.observable(x), y: ko.observable(y) }
-            );
+            if (self.settingsViewModel.settings.plugins.bedready.roi_points().length == 0) {
+                var canvas = document.getElementById('overlay-canvas');
+                self.settingsViewModel.settings.plugins.bedready.roi_points.push(
+                    { x: ko.observable(Math.max(0, x-60)), y: ko.observable(Math.max(0, y-60)) }
+                );
+                self.settingsViewModel.settings.plugins.bedready.roi_points.push(
+                    { x: ko.observable(Math.max(0, x-60)), y: ko.observable(Math.min(canvas.height, y+60)) }
+                );
+                self.settingsViewModel.settings.plugins.bedready.roi_points.push(
+                    { x: ko.observable(Math.min(canvas.width, x+60)), y: ko.observable(Math.min(canvas.height, y+60)) }
+                );
+                self.settingsViewModel.settings.plugins.bedready.roi_points.push(
+                    { x: ko.observable(Math.min(canvas.width, x+60)), y: ko.observable(Math.max(0, y-60)) }
+                );
+            }
+            else {
+                self.settingsViewModel.settings.plugins.bedready.roi_points.push(
+                    { x: ko.observable(x), y: ko.observable(y) }
+                );
+            }
             self.drawROI();
             console.log("Added new point: (%d, %d)", x, y);
-        }
-
-        self.rm_roi_point = function(x, y) {
-            self.roi_points.remove({x: ko.observable(x), y: ko.observable(y)});
-            self.drawROI();
         }
 
         // Draw the ROI boundary based on the defined points
@@ -189,7 +194,7 @@ $(function () {
             // Draw quadrilateral
             ctx.beginPath();
             ctx.rect(0, 0, canvas.width, canvas.height);
-            self.roi_points().forEach(function(point, index) {
+            self.settingsViewModel.settings.plugins.bedready.roi_points().forEach(function(point, index) {
                 ctx[index === 0 ? 'moveTo' : 'lineTo'](point.x(), point.y());
             });
             ctx.clip();
@@ -204,7 +209,7 @@ $(function () {
             
             // Draw quadrilateral corners
             ctx.fillStyle = "blue";
-            self.roi_points().forEach(function(point, index) {
+            self.settingsViewModel.settings.plugins.bedready.roi_points().forEach(function(point, index) {
                 ctx.fillRect(point.x()-3, point.y()-3, 6, 6);
             });
         };
@@ -215,11 +220,11 @@ $(function () {
             var rect = canvas.getBoundingClientRect();
             var mouseX = event.clientX - rect.left;
             var mouseY = event.clientY - rect.top;
-            self.roi_points().forEach(function(point) {
+            self.settingsViewModel.settings.plugins.bedready.roi_points().forEach(function(point) {
                 if (Math.abs(point.x() - mouseX) < 10 && Math.abs(point.y() - mouseY) < 10) {
                     self.selectedPoint = point;
                     if(event.ctrlKey) {
-                        self.roi_points.remove(point);
+                        self.settingsViewModel.settings.plugins.bedready.roi_points.remove(point);
                         self.drawROI();
                         console.log("Removing ROI point: (%d, %d)", point.x(), point.y());
                     }
@@ -228,7 +233,7 @@ $(function () {
             if (event.ctrlKey && self.selectedPoint == null) {
                 self.add_roi_point(mouseX, mouseY);
                 console.log("Added new point: (%d, %d)", mouseX, mouseY);
-                console.log(self.roi_points);
+                console.log(self.settingsViewModel.settings.plugins.bedready.roi_points);
             }
         };
 
@@ -266,9 +271,9 @@ $(function () {
         // Auto initialize ROI canvas when reference image is loaded:
         var ref_snapshot_img = document.getElementById('reference-snapshot')
         ref_snapshot_img.addEventListener('load', self.onReferenceLoaded)
-        if (ref_snapshot_img.complete) {
-            self.onReferenceLoaded();
-        }
+        // if (ref_snapshot_img.complete) {
+        //     self.onReferenceLoaded();
+        // }
     }
 
     OCTOPRINT_VIEWMODELS.push({
