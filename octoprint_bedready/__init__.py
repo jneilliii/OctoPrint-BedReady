@@ -4,6 +4,7 @@ from __future__ import absolute_import
 import flask
 import octoprint.plugin
 import requests
+import traceback
 import os
 import datetime
 from pathlib import Path
@@ -129,12 +130,30 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
         ]
 
     def compare_images(self, reference_image, comparison_image):
-        import cv2
-        reference_image = cv2.imread(reference_image)
-        comparison_image = cv2.imread(comparison_image)
-        height, width, channels = reference_image.shape
-        pixel_difference = cv2.norm(reference_image, comparison_image, cv2.NORM_L2)
-        return 1 - pixel_difference / (height * width)
+        try:
+            import cv2
+            import numpy as np
+            reference_image = cv2.imread(reference_image)
+            comparison_image = cv2.imread(comparison_image)
+            height, width, channels = reference_image.shape
+
+            if self._settings.get_boolean(["enable_roi"]) and len(self._settings.get(["roi_points"]) or []) > 2:
+                mask = np.zeros(reference_image.shape[:2], np.uint8)
+                roi_pts = np.array([[width*p["x"], height*p["y"]] for p in self._settings.get(["roi_points"])], dtype=np.int32)
+                cv2.fillConvexPoly(mask, roi_pts, 255)
+
+                reference_image = cv2.bitwise_and(reference_image, reference_image, mask=mask)
+                comparison_image = cv2.bitwise_and(comparison_image, comparison_image, mask=mask)
+
+                pixel_difference = cv2.norm(reference_image, comparison_image, cv2.NORM_L2)
+                return 1 - pixel_difference / cv2.countNonZero(mask)
+
+            pixel_difference = cv2.norm(reference_image, comparison_image, cv2.NORM_L2)
+            return 1 - pixel_difference / (height * width)
+        except Exception as e:
+            self._logger.error(e)
+            self._logger.error(traceback.format_exc())
+            return 0
 
     # ~~ @ command hook
 
