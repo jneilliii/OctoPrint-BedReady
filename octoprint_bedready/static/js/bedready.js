@@ -184,6 +184,11 @@ $(function () {
             console.log("Added new point: (%d, %d)", x, y);
         }
 
+        self.clear_roi_points = function() {
+            self.settingsViewModel.settings.plugins.bedready.roi_points.removeAll();
+            self.drawROI();
+        }
+
         // Draw the ROI boundary based on the defined points
         self.drawROI = function() {
             var canvas = document.getElementById('overlay-canvas');

@@ -26,9 +26,10 @@
     <label class="checkbox">Enable Region of Interest
         <input id="enable_roi_cb" type="checkbox" data-bind="checked: settingsViewModel.settings.plugins.bedready.enable_roi, click: toggle_enable_roi">
     </label>
-    <div class="row-fluid" data-bind="visible: settingsViewModel.settings.plugins.bedready.enable_roi">
-        <div class="well"><p>Move around the points defining the ROI on the reference image canvas above by dragging the blue corner points to the edges of the print bed. CTRL + click on empty parts of the canvas to add a new point to the polygon and CTRL + click on a point of the polygon to remove it.
-        </div>
+    <div class="controls" data-bind="visible: settingsViewModel.settings.plugins.bedready.enable_roi">
+      <div class="well"><p>Move around the points defining the ROI on the reference image canvas above by dragging the blue corner points to the edges of the print bed. CTRL + click on empty parts of the canvas to add a new point to the polygon and CTRL + click on a point of the polygon to remove it.
+      </div>
+      <button title="Clear ROI" class="btn btn-danger" data-bind="click: clear_roi_points"><i class="fa fa-trash-o"></i> {{ _('Clear ROI') }}</button>
     </div>
   </div>
 	<div class="control-group">
