@@ -87,6 +87,8 @@ $(function () {
 
         self.set_default_snapshot = function(filename) {
           self.settingsViewModel.settings.plugins.bedready.reference_image(filename);
+          // ToDo: put in proper place...
+          self.initializeCanvas(); // Initialize the canvas when the reference image
         }
 
         self.take_snapshot = function() {
@@ -146,6 +148,83 @@ $(function () {
                     }
                     self.taking_snapshot(false);
                 });
+        };
+
+        // Initialize the canvas dimensions based on the loaded image
+        self.initializeCanvas = function() {
+            var img = document.getElementById('reference-snapshot');
+            var canvas = document.getElementById('overlay-canvas');
+            canvas.width = img.clientWidth;
+            canvas.height = img.clientHeight;
+            self.drawROI();
+            $(canvas).css('pointer-events', 'auto'); // Make sure canvas is interactive
+        };
+
+        // Observable array to manage points on the canvas
+        self.roi_points = ko.observableArray([
+            { x: ko.observable(50), y: ko.observable(50) },
+            { x: ko.observable(50), y: ko.observable(150) },
+            { x: ko.observable(250), y: ko.observable(150) },
+            { x: ko.observable(250), y: ko.observable(50) }
+        ]);
+
+        // Draw the ROI boundary based on the defined points
+        self.drawROI = function() {
+            var canvas = document.getElementById('overlay-canvas');
+            var ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+
+            // Draw quadrilateral
+            ctx.beginPath();
+            ctx.rect(0, 0, canvas.width, canvas.height);
+            self.roi_points().forEach(function(point, index) {
+                ctx[index === 0 ? 'moveTo' : 'lineTo'](point.x(), point.y());
+            });
+            ctx.clip();
+            ctx.strokeStyle = 'lightgreen';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Block out non-ROI:
+            ctx.fillStyle = "rgba(20,20,20,0.666)";
+            ctx.fillRect(0,0, canvas.width, canvas.height);
+            ctx.restore();
+            
+            // Draw quadrilateral corners
+            ctx.fillStyle = "blue";
+            self.roi_points().forEach(function(point, index) {
+                ctx.fillRect(point.x()-3, point.y()-3, 6, 6);
+            });
+        };
+
+        // Event handlers for mouse actions on the canvas
+        self.mouseDown = function(data, event) {
+            var canvas = document.getElementById('overlay-canvas');
+            var rect = canvas.getBoundingClientRect();
+            var mouseX = event.clientX - rect.left;
+            var mouseY = event.clientY - rect.top;
+            self.roi_points().forEach(function(point) {
+                if (Math.abs(point.x() - mouseX) < 10 && Math.abs(point.y() - mouseY) < 10) {
+                    self.selectedPoint = point;
+                }
+            });
+            console.log("MouseDown: (%d, %d)", mouseX, mouseY);
+        };
+
+        self.mouseMove = function(data, event) {
+            if (self.selectedPoint) {
+                var rect = event.target.getBoundingClientRect();
+                var mouseX = event.clientX - rect.left;
+                var mouseY = event.clientY - rect.top;
+                self.selectedPoint.x(mouseX);
+                self.selectedPoint.y(mouseY);
+                self.drawROI();
+            }
+        };
+
+        self.mouseUp = function(data, event) {
+            self.selectedPoint = null;
         };
     }
 

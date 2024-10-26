@@ -9,7 +9,15 @@
   <div class="control-group">
     <div class="controls">
       <p>
-        <img src="" alt="bed snapshot" data-bind="visible: settingsViewModel.settings.plugins.bedready.reference_image().length > 0, attr: {src: 'plugin/bedready/images/' + settingsViewModel.settings.plugins.bedready.reference_image()}">
+        <div id="image-container" style="position: relative;" data-bind="visible: settingsViewModel.settings.plugins.bedready.reference_image().length > 0">
+          <img id="reference-snapshot" src="" alt="bed snapshot" style="position: relative;" data-bind="attr: {src: 'plugin/bedready/images/' + settingsViewModel.settings.plugins.bedready.reference_image()}">
+          <canvas id="overlay-canvas" data-bind="event: {
+              mousedown: mouseDown, 
+              mousemove: mouseMove,
+              mouseup: mouseUp,
+              mouseout: mouseUp
+          }" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: auto;"></canvas>
+        </div>
       </p>
       <button class="btn btn-primary" data-bind="click: take_snapshot, enable: !taking_snapshot(), css: {disabled: taking_snapshot()}"><i class="fas" data-bind="css: {'fa-spinner fa-spin': taking_snapshot(), 'fa-camera': !taking_snapshot()}"></i> {{ _('Take Snapshot') }}</button> 
       <button class="btn btn-primary" data-bind="visible: settingsViewModel.settings.plugins.bedready.reference_image().length > 0, click: test_snapshot, enable: !taking_snapshot(), css: {disabled: taking_snapshot()}"><i class="fas" data-bind="css: {'fa-spinner fa-spin': taking_snapshot(), 'fa-camera': !taking_snapshot()}"></i> {{ _('Test Reference') }}</button>
