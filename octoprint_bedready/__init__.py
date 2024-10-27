@@ -47,28 +47,27 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
             ]
 
     def on_api_command(self, command, data):
-        import flask
-        if command == "take_snapshot":
-            try:
+        try:
+            import flask
+            if command == "take_snapshot":
                 self.take_snapshot(data.get("name"))
-            except Exception as e:
-                return flask.jsonify(dict(error=str(e)))
-            return flask.jsonify(self.get_snapshots())
-        elif command == "check_bed":
-            try:
+                return flask.jsonify(self.get_snapshots())
+            elif command == "check_bed":
                 result = self.check_bed(data.get("reference"), data.get("similarity"))
                 return flask.jsonify(result)
-            except Exception as e:
-                return flask.jsonify(dict(error=str(e)))
-        elif command == "list_snapshots":
-            return flask.jsonify(self.get_snapshots())
-        elif command == "delete_snapshot":
-            p = Path(self.get_plugin_data_folder()) / data.get("filename")
-            if not p.relative_to(self.get_plugin_data_folder()):
-                raise ValueError("Path is outside of plugin data folder")
-            elif not p.exists() or not p.is_file():
-                raise ValueError("Path is not a file")
-            p.unlink()
+            elif command == "list_snapshots":
+                return flask.jsonify(self.get_snapshots())
+            elif command == "delete_snapshot":
+                p = Path(self.get_plugin_data_folder()) / data.get("filename")
+                if not p.relative_to(self.get_plugin_data_folder()):
+                    raise ValueError("Path is outside of plugin data folder")
+                elif not p.exists() or not p.is_file():
+                    raise ValueError("Path is not a file")
+                p.unlink()
+        except Exception as e:
+            self._logger.error(e)
+            self._logger.error(traceback.format_exc())
+            return flask.jsonify(dict(error=str(e)))
 
     def take_snapshot(self, filename=None):
         snapshot_url = self._settings.global_get(["webcam", "snapshot"])
