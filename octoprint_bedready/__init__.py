@@ -137,19 +137,18 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
             comparison_image = cv2.imread(comparison_image)
             height, width, channels = reference_image.shape
 
+            mask = None
+            area = width*height
             if self._settings.get_boolean(["enable_roi"]) and len(self._settings.get(["roi_points"]) or []) > 2:
                 mask = np.zeros(reference_image.shape[:2], np.uint8)
                 roi_pts = np.array([[width*p["x"], height*p["y"]] for p in self._settings.get(["roi_points"])], dtype=np.int32)
                 cv2.fillConvexPoly(mask, roi_pts, 255)
+                area = cv2.countNonZero(mask)
 
-                reference_image = cv2.bitwise_and(reference_image, reference_image, mask=mask)
-                comparison_image = cv2.bitwise_and(comparison_image, comparison_image, mask=mask)
-
-                pixel_difference = cv2.norm(reference_image, comparison_image, cv2.NORM_L2)
-                return 1 - pixel_difference / cv2.countNonZero(mask)
-
-            pixel_difference = cv2.norm(reference_image, comparison_image, cv2.NORM_L2)
-            return 1 - pixel_difference / (height * width)
+            pixel_difference = cv2.norm(reference_image, comparison_image, cv2.NORM_L2, mask=mask)
+            match = 1 - pixel_difference / area
+            self._logger.debug(f"Computed masked difference of {pixel_difference}, on image of size {width}x{height}, masked area: {area}. Match: {match*100}%")
+            return match
         except Exception as e:
             self._logger.error(e)
             self._logger.error(traceback.format_exc())
