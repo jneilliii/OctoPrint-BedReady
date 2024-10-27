@@ -13,6 +13,9 @@ from octoprint.events import Events
 TEST_FILENAME = "test.jpg"
 COMPARISON_FILENAME = "comparison.jpg"
 
+MASKED_COMPARISON_FILENAME = "comparison_masked.jpg"
+MASKED_REFERENCE_FILENAME = "reference_masked.jpg"
+
 class SnapshotError(Exception):
     pass
 
@@ -43,7 +46,7 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
         return [f for f in os.listdir(self.get_plugin_data_folder()) 
                 if os.path.isfile(os.path.join(self.get_plugin_data_folder(), f))
                 and os.path.splitext(f)[1] == '.jpg'
-                and not f in (TEST_FILENAME, COMPARISON_FILENAME)
+                and not f in (TEST_FILENAME, COMPARISON_FILENAME, MASKED_REFERENCE_FILENAME, MASKED_COMPARISON_FILENAME)
             ]
 
     def on_api_command(self, command, data):
@@ -53,7 +56,7 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
                 self.take_snapshot(data.get("name"))
                 return flask.jsonify(self.get_snapshots())
             elif command == "check_bed":
-                result = self.check_bed(data.get("reference"), data.get("similarity"))
+                result = self.check_bed(data.get("reference"), data.get("similarity"), draw_roi=self.roi_enabled())
                 return flask.jsonify(result)
             elif command == "list_snapshots":
                 return flask.jsonify(self.get_snapshots())
@@ -128,6 +131,22 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
                                                              lambda path: not is_hidden_path(path), status_code=404)))
         ]
 
+    def roi_enabled(self):
+        return self._settings.get_boolean(["enable_roi"]) and len(self._settings.get(["roi_points"]) or []) > 2
+
+    def draw_roi_on_image(self, filename_in, filename_out):
+        import cv2
+        import numpy as np
+        snap = cv2.imread(filename_in)
+        height, width, channels = snap.shape
+        mask = np.zeros(snap.shape, np.uint8)
+        roi_pts = np.array([[width*p["x"], height*p["y"]] for p in self._settings.get(["roi_points"])], dtype=np.int32)
+        cv2.fillConvexPoly(mask, roi_pts, [255, 255, 255])
+    
+        masked_snapshot = cv2.addWeighted(snap, 0.5, mask, 0.5, 0)
+        cv2.imwrite(filename_out, masked_snapshot)
+        
+
     def compare_images(self, reference_image, comparison_image):
         try:
             import cv2
@@ -138,7 +157,7 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
 
             mask = None
             area = width*height
-            if self._settings.get_boolean(["enable_roi"]) and len(self._settings.get(["roi_points"]) or []) > 2:
+            if self.roi_enabled():
                 mask = np.zeros(reference_image.shape[:2], np.uint8)
                 roi_pts = np.array([[width*p["x"], height*p["y"]] for p in self._settings.get(["roi_points"])], dtype=np.int32)
                 cv2.fillConvexPoly(mask, roi_pts, 255)
@@ -180,7 +199,7 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
             except Exception as e:
                 self._logger.error(e)
 
-    def check_bed(self, reference=None, match_percentage=None):
+    def check_bed(self, reference=None, match_percentage=None, draw_roi=False):
         if reference == None:
             reference = self._settings.get(["reference_image"])
         if match_percentage == None:
@@ -191,7 +210,18 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
         similarity = self.compare_images(
             os.path.join(self.get_plugin_data_folder(), reference),
             os.path.join(self.get_plugin_data_folder(), COMPARISON_FILENAME))
-        return {"bed_clear": similarity > match_percentage, "test_image": COMPARISON_FILENAME, "reference_image": reference, "similarity": round(similarity, 4)}
+
+        reference_fn = reference
+        comparison_fn = COMPARISON_FILENAME  
+        if draw_roi:
+            self.draw_roi_on_image(os.path.join(self.get_plugin_data_folder(), reference),
+                                   os.path.join(self.get_plugin_data_folder(), MASKED_REFERENCE_FILENAME))
+            self.draw_roi_on_image(os.path.join(self.get_plugin_data_folder(), COMPARISON_FILENAME),
+                                   os.path.join(self.get_plugin_data_folder(), MASKED_COMPARISON_FILENAME))
+            reference_fn = MASKED_REFERENCE_FILENAME
+            comparison_fn = MASKED_COMPARISON_FILENAME
+
+        return {"bed_clear": similarity > match_percentage, "test_image": comparison_fn, "reference_image": reference_fn, "similarity": round(similarity, 4)}
 
     # ~~ Softwareupdate hook
 
