@@ -52,6 +52,8 @@ For the plugin to work properly add `@BEDREADY` at the beginning of your slicer'
 
 ![Settings Screenshot](/assets/img/plugins/bedready/screenshot_settings.png)
 
+Use the crop area to select the part of the image used for comparison, such as the bed surface only. Drag the corner handles in the image above to match your bed dimensions.
+
 Use the Test Snapshot button to compare the currently stored Reference Image with the bed.
 
 ![Test Results](/assets/img/plugins/bedready/screenshot_test_results.png)
@@ -59,6 +61,12 @@ Use the Test Snapshot button to compare the currently stored Reference Image wit
 ## Get Help
 
 If you experience issues with this plugin or need assistance please use the issue tracker at the plugin's Homepage linked on the right.
+
+If there are any issues with OpenCV (cv2) on OctoPi, try installing the following package:
+
+```
+sudo apt-get install libopenblas-dev
+```
 
 ### Additional Plugins
 

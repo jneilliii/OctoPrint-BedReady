@@ -6,14 +6,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "Bed-Ready"
-version = "0.2.3"
+version = "0.3.0"
 description = "Plugin that uses the camera and opencv to determine if the bed matches a reference image indicating that the bed is clear and ready to start a print."
 authors = [
     { name = "jneilliii", email = "jneilliii+github@gmail.com" },
 ]
 requires-python = ">=3.7,<4"
 dependencies = [
-    "opencv-python-headless~=4.10.0.84",
+    "opencv-python-headless~=4.12.0.88",
 ]
 dynamic = [
     "license",

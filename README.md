@@ -21,6 +21,8 @@ or manually using this URL:
 
 ![Settings Screenshot](screenshot_settings.png)
 
+Use the crop area to select the part of the image used for comparison, such as the bed surface only. Drag the corner handles in the image above to match your bed dimensions.
+
 Use the Test Snapshot button to compare the currently selected default Reference Image with the bed.
 
 ![Test Results](screenshot_test_results.png)
@@ -42,6 +44,12 @@ def on_after_startup(self):
 self.take_snapshot("new_snapshot.jpg")
 self.check_bed("new_snapshot.jpg", 0.8)
 ```
+
+## GCODE Commands
+
+`@BEDREADY [reference_image] [match_percentage]` - Checks if bed matches reference image. Pauses/cancels print if bed is not clear.
+
+`@BEDREADY_CAPTURE` - Takes snapshot and sets it as reference image.
 
 ## OctoPi
 
@@ -70,6 +78,7 @@ Check out my other plugins [here](https://plugins.octoprint.org/by_author/#jneil
 - [Calanish](https://github.com/calanish)
 - [Lachlan Bell](https://lachy.io/)
 - [Jonny Bergdahl](https://github.com/bergdahl)
+
 ## Support My Efforts
 I, jneilliii, programmed this plugin for fun and do my best effort to support those that have issues with it, please return the favor and leave me a tip or become a Patron if you find this plugin helpful and want me to continue future development.
 
