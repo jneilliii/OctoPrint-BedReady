@@ -464,8 +464,11 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
             if store_debug:
                 comparison_path = os.path.join(self.get_plugin_data_folder(), COMPARISON_FILENAME)
                 self.store_debug_image(comparison_path, similarity)
-        except Exception as e:
+        except Exception:
+            # Both callers handle this and surface the error; there is no similarity
+            # value to report, so do not fall through to the return below.
             self._logger.exception("Error during snapshot comparison:")
+            raise
 
         return {"bed_clear": similarity > match_percentage, "test_image": COMPARISON_FILENAME, "reference_image": reference, "similarity": round(similarity, 4)}
 
