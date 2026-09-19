@@ -440,7 +440,16 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
                             self._printer.pause_print(tags={self._identifier})
                     self._plugin_manager.send_plugin_message(self._identifier, message)
                 except Exception as e:
-                    self._logger.info(e)
+                    # Fail closed: a check that could not run has not established that
+                    # the bed is clear, so treat it as not ready.
+                    self._logger.exception("Bed check could not be performed; treating as not ready:")
+                    if self._settings.get_boolean(["cancel_print"]):
+                        self._printer.cancel_print(tags={self._identifier})
+                    else:
+                        self._printer.pause_print(tags={self._identifier})
+                    self._plugin_manager.send_plugin_message(
+                        self._identifier,
+                        {"bed_clear": False, "error": str(e)})
 
     def check_bed(self, reference=None, match_percentage=None, store_debug=False, crop_coords=None):
         if reference == None:
