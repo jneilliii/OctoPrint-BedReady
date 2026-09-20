@@ -6,6 +6,9 @@ import octoprint.plugin
 import requests
 import os
 import datetime
+import socket
+import ipaddress
+import urllib.parse
 from pathlib import Path
 from octoprint.events import Events
 from octoprint.util.files import sanitize_filename
@@ -248,6 +251,14 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
         snapshot_url = self.get_snapshot_url()
         if snapshot_url == "" or not filename or not snapshot_url.startswith("http"):
             raise ValueError("missing or incorrect webcam snapshot url in OctoPrint webcam settings.")
+
+        hostname = urllib.parse.urlparse(snapshot_url).hostname
+        try:
+            resolved_ip = ipaddress.ip_address(socket.gethostbyname(hostname))
+        except (socket.gaierror, ValueError):
+            raise ValueError("unable to resolve webcam snapshot url host.")
+        if resolved_ip.is_private or resolved_ip.is_loopback or resolved_ip.is_link_local or resolved_ip.is_reserved or resolved_ip.is_multicast:
+            raise ValueError("webcam snapshot url resolves to a disallowed network address.")
 
         download_file_name = os.path.join(self.get_plugin_data_folder(), filename)
         response = requests.get(snapshot_url, timeout=20)
