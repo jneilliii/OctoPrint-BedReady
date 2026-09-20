@@ -440,7 +440,16 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
                             self._printer.pause_print(tags={self._identifier})
                     self._plugin_manager.send_plugin_message(self._identifier, message)
                 except Exception as e:
-                    self._logger.info(e)
+                    # Fail closed: a check that could not run has not established that
+                    # the bed is clear, so treat it as not ready.
+                    self._logger.exception("Bed check could not be performed; treating as not ready:")
+                    if self._settings.get_boolean(["cancel_print"]):
+                        self._printer.cancel_print(tags={self._identifier})
+                    else:
+                        self._printer.pause_print(tags={self._identifier})
+                    self._plugin_manager.send_plugin_message(
+                        self._identifier,
+                        {"bed_clear": False, "error": str(e)})
 
     def check_bed(self, reference=None, match_percentage=None, store_debug=False, crop_coords=None):
         if reference == None:
@@ -464,8 +473,11 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
             if store_debug:
                 comparison_path = os.path.join(self.get_plugin_data_folder(), COMPARISON_FILENAME)
                 self.store_debug_image(comparison_path, similarity)
-        except Exception as e:
+        except Exception:
+            # Both callers handle this and surface the error; there is no similarity
+            # value to report, so do not fall through to the return below.
             self._logger.exception("Error during snapshot comparison:")
+            raise
 
         return {"bed_clear": similarity > match_percentage, "test_image": COMPARISON_FILENAME, "reference_image": reference, "similarity": round(similarity, 4)}
 
