@@ -17,17 +17,23 @@ def validate_snapshot_url(snapshot_url):
     a webcam snapshot from.
 
     Deliberately ALLOWS RFC1918/private network addresses (192.168.x.x,
-    10.x.x.x, 172.16-31.x.x): local IP webcams and ESP32-CAM modules on the
-    LAN are this plugin's primary supported use case (see PR #30 maintainer
-    feedback).
+    10.x.x.x, 172.16-31.x.x) and loopback (127.0.0.1, ::1): local IP webcams
+    and ESP32-CAM modules on the LAN, and the default OctoPi setup where
+    mjpg-streamer runs on the same host as OctoPrint (snapshot url
+    http://127.0.0.1:8080/?action=snapshot), are this plugin's primary
+    supported use cases (see PR #30 maintainer feedback). This URL is also
+    read from OctoPrint's own admin-configured webcam settings rather than
+    attacker-supplied input to BedReady, so the goal here isn't to defend
+    against arbitrary destinations, just to avoid unintentionally reaching
+    infrastructure endpoints that have no legitimate camera use.
 
     Rejects:
       - non-http(s) schemes (e.g. file://, ftp://)
       - URLs with no hostname
       - hostnames that fail to resolve
-      - hostnames that resolve (IPv4 or IPv6) to a loopback, link-local
-        (including the 169.254.169.254 cloud metadata address), multicast,
-        or unspecified (0.0.0.0 / ::) address
+      - hostnames that resolve (IPv4 or IPv6) to a link-local address
+        (including the 169.254.169.254 cloud metadata address), a multicast
+        address, or an unspecified (0.0.0.0 / ::) address
 
     Known limitation (not addressed here): this validates the resolved
     address up front, but requests.get() does its own DNS resolution when it
@@ -60,8 +66,7 @@ def validate_snapshot_url(snapshot_url):
             raise ValueError("unable to resolve webcam snapshot url host.")
 
         if (
-            resolved_ip.is_loopback
-            or resolved_ip.is_link_local
+            resolved_ip.is_link_local
             or resolved_ip.is_multicast
             or resolved_ip.is_unspecified
         ):

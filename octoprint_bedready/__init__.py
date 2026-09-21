@@ -250,9 +250,10 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
         if snapshot_url == "" or not filename:
             raise ValueError("missing or incorrect webcam snapshot url in OctoPrint webcam settings.")
 
-        # Intentionally allows RFC1918/private addresses (local IP webcams, ESP32-CAM, etc. — see
-        # PR #30 maintainer feedback); rejects loopback, link-local (incl. 169.254.169.254 cloud
-        # metadata), multicast, and unspecified targets.
+        # Intentionally allows RFC1918/private addresses and loopback (local IP webcams,
+        # ESP32-CAM, and the default OctoPi mjpg-streamer-on-127.0.0.1 setup — see PR #30
+        # maintainer feedback); rejects link-local (incl. 169.254.169.254 cloud metadata),
+        # multicast, and unspecified targets.
         validate_snapshot_url(snapshot_url)
 
         download_file_name = os.path.join(self.get_plugin_data_folder(), filename)

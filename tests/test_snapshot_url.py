@@ -28,6 +28,9 @@ validate_snapshot_url = snapshot_url.validate_snapshot_url
         "http://192.168.1.50/snapshot.jpg",
         "http://10.0.0.25/camera.jpg",
         "http://172.16.0.20/image.jpg",
+        # Default OctoPi setup: mjpg-streamer running on the same host as OctoPrint.
+        "http://127.0.0.1:8080/?action=snapshot",
+        "http://[::1]/snapshot.jpg",
     ],
 )
 def test_allows_local_network_cameras(url):
@@ -39,9 +42,7 @@ def test_allows_local_network_cameras(url):
     [
         "file:///etc/passwd",
         "ftp://192.168.1.50/image",
-        "http://127.0.0.1:8080/",
         "http://169.254.169.254/latest/meta-data/",
-        "http://[::1]/",
         "",
         "not a url",
         "http://",
@@ -60,6 +61,14 @@ def test_allows_hostname_resolving_to_private_address(monkeypatch):
     validate_snapshot_url("http://camera.local/snapshot.jpg")
 
 
+def test_allows_hostname_resolving_to_loopback(monkeypatch):
+    def fake_getaddrinfo(host, port, **kwargs):
+        return [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("127.0.0.1", 0))]
+
+    monkeypatch.setattr(snapshot_url.socket, "getaddrinfo", fake_getaddrinfo)
+    validate_snapshot_url("http://localhost:8080/?action=snapshot")
+
+
 def test_rejects_hostname_resolving_to_metadata_address(monkeypatch):
     def fake_getaddrinfo(host, port, **kwargs):
         return [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("169.254.169.254", 0))]
@@ -73,7 +82,7 @@ def test_rejects_if_any_resolved_address_is_disallowed(monkeypatch):
     def fake_getaddrinfo(host, port, **kwargs):
         return [
             (socket.AF_INET, socket.SOCK_STREAM, 0, "", ("192.168.1.50", 0)),
-            (socket.AF_INET6, socket.SOCK_STREAM, 0, "", ("::1", 0, 0, 0)),
+            (socket.AF_INET6, socket.SOCK_STREAM, 0, "", ("fe80::1", 0, 0, 0)),
         ]
 
     monkeypatch.setattr(snapshot_url.socket, "getaddrinfo", fake_getaddrinfo)
