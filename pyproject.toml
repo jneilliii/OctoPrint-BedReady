@@ -28,6 +28,7 @@ Homepage = "https://github.com/jneilliii/OctoPrint-BedReady"
 [project.optional-dependencies]
 develop = [
     "go-task-bin",
+    "pytest>=7",
 ]
 
 [project.readme]
@@ -36,6 +37,9 @@ content-type = "text/markdown"
 
 [tool.setuptools]
 include-package-data = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
 
 [tool.setuptools.packages.find]
 include = [

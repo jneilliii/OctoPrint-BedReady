@@ -6,13 +6,11 @@ import octoprint.plugin
 import requests
 import os
 import datetime
-import socket
-import ipaddress
-import urllib.parse
 from pathlib import Path
 from octoprint.events import Events
 from octoprint.util.files import sanitize_filename
 from octoprint.webcams import get_snapshot_webcam
+from .snapshot_url import validate_snapshot_url
 
 TEST_FILENAME = "test.jpg"
 COMPARISON_FILENAME = "comparison.jpg"
@@ -249,18 +247,19 @@ class BedReadyPlugin(octoprint.plugin.SettingsPlugin,
 
     def take_snapshot(self, filename=None):
         snapshot_url = self.get_snapshot_url()
-        if snapshot_url == "" or not filename or not snapshot_url.startswith("http"):
+        if snapshot_url == "" or not filename:
             raise ValueError("missing or incorrect webcam snapshot url in OctoPrint webcam settings.")
 
-        hostname = urllib.parse.urlparse(snapshot_url).hostname
-        try:
-            resolved_ip = ipaddress.ip_address(socket.gethostbyname(hostname))
-        except (socket.gaierror, ValueError):
-            raise ValueError("unable to resolve webcam snapshot url host.")
-        if resolved_ip.is_private or resolved_ip.is_loopback or resolved_ip.is_link_local or resolved_ip.is_reserved or resolved_ip.is_multicast:
-            raise ValueError("webcam snapshot url resolves to a disallowed network address.")
+        # Intentionally allows RFC1918/private addresses (local IP webcams, ESP32-CAM, etc. — see
+        # PR #30 maintainer feedback); rejects loopback, link-local (incl. 169.254.169.254 cloud
+        # metadata), multicast, and unspecified targets.
+        validate_snapshot_url(snapshot_url)
 
         download_file_name = os.path.join(self.get_plugin_data_folder(), filename)
+        # NOTE: requests.get() re-resolves the hostname itself, so a DNS record that changes
+        # between validate_snapshot_url() and this request (DNS rebinding) could bypass the check
+        # above. Not addressed: IP-pinning the connection is disproportionate for this admin-
+        # configured, low-risk URL.
         response = requests.get(snapshot_url, timeout=20)
         if response.status_code == 200:
             with open(download_file_name, "wb") as f:
